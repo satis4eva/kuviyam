@@ -9,6 +9,19 @@ const initials = (n) => String(n).split(/\s+/).filter((w) => /^[A-Za-z]/.test(w)
 function avatar(org, lg) {
   return h`<span class="avatar${lg ? ' lg' : ''}" style="background:${raw(/^#[0-9a-f]{6}$/i.test(org.color || '') ? org.color : '#0D6B5B')}" aria-hidden="true">${initials(org.name)}</span>`;
 }
+const MEMBER_COLORS = ['#0D6B5B', '#2E6FA8', '#B5542D', '#8A4FB0', '#9C7A12', '#4C7D2C', '#A83E5B'];
+/** A member's picture, or their initials on a colour picked from their id. Works for Tamil names too (first letter). */
+function memberAvatar(u, size = '') {
+  const cls = `avatar${size ? ' ' + size : ''}`;
+  if (u.avatar_file_id) return h`<img class="${cls} pic" src="/files/${u.avatar_file_id}" alt="" loading="lazy">`;
+  const letters = String(u.name || '?').trim().split(/\s+/).map((w) => Array.from(w)[0]).slice(0, 2).join('').toUpperCase();
+  return h`<span class="${cls}" style="background:${raw(MEMBER_COLORS[(Number(u.id) || 0) % MEMBER_COLORS.length])}" aria-hidden="true">${letters}</span>`;
+}
+/** Silver or Gold member badge; nothing for free members. */
+function tierBadge(ctx, tier) {
+  if (tier !== 'silver' && tier !== 'gold') return '';
+  return h`<span class="badge ${tier}" title="${ctx.t('tierMember', { t: ctx.t('tier_' + tier) })}">★ ${ctx.t('tier_' + tier)}</span>`;
+}
 function verifiedTag(ctx, org) {
   return org.status === 'verified' ? h`<span class="verified">✓ ${ctx.t('verified')}</span>` : h`<span class="chip warn">${ctx.t('verPending')}</span>`;
 }
@@ -75,4 +88,4 @@ function errors(ctx, list) {
   return h`<div class="flash bad" role="alert"><b>${ctx.t('fixThese')}</b><ul>${list.map((e) => h`<li>${e}</li>`)}</ul></div>`;
 }
 
-module.exports = { L, pct, avatar, verifiedTag, art, projectCard, csrfField, options, errors, absUrl, shareBar };
+module.exports = { memberAvatar, tierBadge, L, pct, avatar, verifiedTag, art, projectCard, csrfField, options, errors, absUrl, shareBar };

@@ -11,6 +11,7 @@ const { provider } = require('./payments');
 const { audit } = require('./db');
 const { layout } = require('./views/layout');
 const { registerCommunity } = require('./community');
+const { registerSocial, can } = require('./social');
 const P = require('./views/pages');
 const M = require('./views/manage');
 
@@ -62,7 +63,7 @@ function createApp(db) {
     .run(kind, ownerId, label, f.filename, f.mime, f.data.length, f.data, nowIso()).lastInsertRowid);
   const tx = (fn) => { db.exec('BEGIN'); try { const r = fn(); db.exec('COMMIT'); return r; } catch (e) { db.exec('ROLLBACK'); throw e; } };
   const fileErr = (ctx, code, name) => ctx.t('file_' + code, { f: name });
-  const H = { db, page: (...a) => page(...a), redirect: (...a) => redirect(...a), requireUser: (c) => requireUser(c), partnerOrg: (c) => partnerOrg(c), requireAdmin: (c) => requireAdmin(c), saveFile: (...a) => saveFile(...a), tx: (f) => tx(f), HttpError, fileErr: (...a) => fileErr(...a) };
+  const H = { db, page: (...a) => page(...a), redirect: (...a) => redirect(...a), requireUser: (c) => requireUser(c), partnerOrg: (c) => partnerOrg(c), requireAdmin: (c) => requireAdmin(c), saveFile: (...a) => saveFile(...a), tx: (f) => tx(f), HttpError, fileErr: (...a) => fileErr(...a), can };
   const maskEmail = (e) => { const [u, d] = String(e).split('@'); return (u ? u[0] : '') + '•••@' + (d || ''); };
 
   /* ---------------- language ---------------- */
@@ -172,9 +173,11 @@ function createApp(db) {
       if (r && r.status === 'published' && r.ostatus === 'verified') allowed = true;
       if (r && ctx.user && ctx.user.orgs.some((x) => x.id === r.org_id)) allowed = true;
     } else if (f.owner_kind === 'post') {
-      const p = db.prepare(`SELECT p.status, p.org_id, o.status AS ostatus FROM posts p JOIN orgs o ON o.id = p.org_id WHERE p.id = ?`).get(f.owner_id);
-      if (p && p.status === 'live' && p.ostatus === 'verified') allowed = true;
-      if (p && ctx.user && ctx.user.orgs.some((x) => x.id === p.org_id)) allowed = true;
+      const p = db.prepare(`SELECT p.status, p.org_id, p.user_id, o.status AS ostatus FROM posts p LEFT JOIN orgs o ON o.id = p.org_id WHERE p.id = ?`).get(f.owner_id);
+      if (p && p.status === 'live' && (p.org_id === null || p.ostatus === 'verified')) allowed = true;
+      if (p && ctx.user && (p.org_id === null ? p.user_id === ctx.user.id : ctx.user.orgs.some((x) => x.id === p.org_id))) allowed = true;
+    } else if (f.owner_kind === 'avatar') {
+      allowed = !!db.prepare('SELECT 1 FROM users WHERE id = ? AND avatar_file_id = ?').get(f.owner_id, f.id);
     } else if (f.owner_kind === 'memorial') {
       const m = db.prepare('SELECT status, user_id FROM memorials WHERE id = ?').get(f.owner_id);
       if (m && (m.status === 'live' || (ctx.user && m.user_id === ctx.user.id))) allowed = true;
@@ -523,8 +526,43 @@ function createApp(db) {
     page(ctx, { title: ctx.t('tDonations'), active: 'admin', body: M.adminDonations(ctx, { list }) });
   });
 
+  const adminList = () => db.prepare(`SELECT id, name, email, created_at FROM users WHERE role = 'admin' ORDER BY name`).all();
+  route('GET', '/admin/admins', (ctx) => {
+    if (!requireAdmin(ctx)) return;
+    page(ctx, { title: ctx.t('tAdmins'), active: 'admin', body: M.adminAdmins(ctx, { list: adminList() }) });
+  });
+  route('POST', '/admin/admins', (ctx) => {
+    if (!requireAdmin(ctx)) return;
+    const b = ctx.body; const email = clean(b.email, 200).toLowerCase(); const name = clean(b.name, 120); const pw = String(b.password || '');
+    const errs = [];
+    const existing = isEmail(email) ? db.prepare('SELECT id, role FROM users WHERE email = ?').get(email) : null;
+    if (!isEmail(email)) errs.push(ctx.t('errEmail'));
+    else if (existing && existing.role === 'admin') errs.push(ctx.t('admAlready'));
+    else if (!existing) {
+      if (!name || !pw) errs.push(ctx.t('admNeedNew'));
+      else if (pw.length < 12) errs.push(ctx.t('errPasswordAdmin'));
+    }
+    if (errs.length) return page(ctx, { title: ctx.t('tAdmins'), active: 'admin', body: M.adminAdmins(ctx, { list: adminList(), email, name, errors: errs }) }, 400);
+    let id;
+    if (existing) { db.prepare(`UPDATE users SET role = 'admin' WHERE id = ?`).run(existing.id); id = Number(existing.id); }
+    else id = Number(db.prepare(`INSERT INTO users (email, name, password_hash, role, created_at) VALUES (?, ?, ?, 'admin', ?)`).run(email, name, auth.hashPassword(pw), nowIso()).lastInsertRowid);
+    audit(db, ctx.user.id, 'admin-add', `#${id}`);
+    redirect(ctx, '/admin/admins', { kind: 'good', msg: ctx.t('admAdded', { e: email }) });
+  });
+  route('POST', '/admin/admins/:id/remove', (ctx) => {
+    if (!requireAdmin(ctx)) return;
+    const id = Number(ctx.params.id);
+    if (id === ctx.user.id || adminList().length < 2) throw new HttpError(400);
+    const u = db.prepare(`SELECT id FROM users WHERE id = ? AND role = 'admin'`).get(id); if (!u) throw new HttpError(404);
+    db.prepare(`UPDATE users SET role = 'donor' WHERE id = ?`).run(id);
+    db.prepare('DELETE FROM sessions WHERE user_id = ?').run(id);
+    audit(db, ctx.user.id, 'admin-remove', `#${id}`);
+    redirect(ctx, '/admin/admins', { kind: 'good', msg: ctx.t('admRemoved') });
+  });
+
   /* ---------------- community hub ---------------- */
   registerCommunity(route, H);
+  registerSocial(route, H);
 
   /* ---------------- request handling ---------------- */
   function serveStatic(ctx) {
@@ -557,6 +595,7 @@ function createApp(db) {
       if (ctx.csrf !== cookies.csrf) ctx.cookies.push(auth.cookie('csrf', ctx.csrf, { maxAge: 7 * 86400, secure: secure(req) }));
       if (cookies.flash) { try { ctx.flash = JSON.parse(cookies.flash); } catch { /* ignore */ } ctx.cookies.push(auth.cookie('flash', '', { maxAge: 0 })); }
       ctx.user = auth.userFromSession(db, cookies.sid);
+      ctx.counts = H.counts ? H.counts(ctx.user) : null;
       if (req.method === 'POST') {
         const type = req.headers['content-type'] || '';
         if (type.startsWith('multipart/form-data')) { const parsed = parseMultipart(await readBody(req, MAX_UPLOAD), type); ctx.body = parsed.fields; ctx.files = parsed.files; }

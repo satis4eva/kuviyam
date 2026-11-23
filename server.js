@@ -1,7 +1,7 @@
 'use strict';
 const http = require('node:http');
 const { open } = require('./src/db');
-const { seedDemo, seedCommunity, seedNotices } = require('./src/seed');
+const { seedDemo, seedCommunity, seedNotices, seedMembers } = require('./src/seed');
 const { createApp } = require('./src/app');
 
 const db = open();
@@ -9,6 +9,7 @@ if (process.env.SEED_DEMO === '1') {
   if (seedDemo(db)) console.log('Seeded demo data.');
   if (seedCommunity(db)) console.log('Seeded community demo data.');
   if (seedNotices(db)) console.log('Seeded demo notice details.');
+  if (seedMembers(db)) console.log('Seeded demo members.');
 }
 
 // Admin bootstrap: set ADMIN_EMAIL and ADMIN_PASSWORD (12+ characters) to create

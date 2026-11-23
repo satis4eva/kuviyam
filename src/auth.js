@@ -41,11 +41,12 @@ function createSession(db, userId) {
 function destroySession(db, id) { if (id) db.prepare('DELETE FROM sessions WHERE id = ?').run(id); }
 function userFromSession(db, id) {
   if (!id || !/^[a-f0-9]{64}$/.test(id)) return null;
-  const row = db.prepare(`SELECT u.id, u.email, u.name, u.role, s.expires_at FROM sessions s JOIN users u ON u.id = s.user_id WHERE s.id = ?`).get(id);
+  const row = db.prepare(`SELECT u.id, u.email, u.name, u.role, u.tier, u.member_until, u.avatar_file_id, s.expires_at FROM sessions s JOIN users u ON u.id = s.user_id WHERE s.id = ?`).get(id);
   if (!row) return null;
   if (row.expires_at < new Date().toISOString()) { destroySession(db, id); return null; }
   const orgs = db.prepare(`SELECT o.id, o.slug, o.name, o.name_ta, o.status, m.role FROM org_members m JOIN orgs o ON o.id = m.org_id WHERE m.user_id = ? ORDER BY o.id`).all(row.id);
-  return { id: row.id, email: row.email, name: row.name, role: row.role, orgs };
+  const tier = row.member_until && row.member_until > new Date().toISOString() ? row.tier : 'free';
+  return { id: row.id, email: row.email, name: row.name, role: row.role, tier, member_until: row.member_until, avatar_file_id: row.avatar_file_id, orgs };
 }
 
 /* Simple in-memory throttle for login and registration attempts. */

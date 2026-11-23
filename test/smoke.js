@@ -111,6 +111,19 @@ async function step(name, fn) { await fn(); passed++; console.log('  ✓', name)
       assert.equal((await anon.get('/setup')).status, 404);
     });
 
+    await step('admins can add and remove other admins', async () => {
+      assert.equal((await admin.get('/admin/admins')).status, 200);
+      assert.equal((await admin.post('/admin/admins', { email: 'second@example.com' })).status, 400);
+      const r = await admin.post('/admin/admins', { email: 'second@example.com', name: 'Second', password: 'another-strong-pass' });
+      assert.equal(r.location, '/admin/admins');
+      const second = new Client(); await second.get('/login');
+      await second.post('/login', { email: 'second@example.com', password: 'another-strong-pass' });
+      assert.equal((await second.get('/admin')).status, 200);
+      const id = /\/admin\/admins\/(\d+)\/remove/.exec((await admin.get('/admin/admins')).text)[1];
+      await admin.post(`/admin/admins/${id}/remove`, {});
+      assert.notEqual((await second.get('/admin')).status, 200);
+    });
+
     const applicant = new Client();
     let appId;
     await step('register, then apply as a partner with documents', async () => {
@@ -264,6 +277,79 @@ async function step(name, fn) { await fn(); passed++; console.log('  ✓', name)
       assert.equal((await anon.get('/partners/vanni-learning-trust')).status, 200);
     });
     await step('admin sees donations', async () => { assert.match((await admin.get('/admin/donations')).text, /Test Donor/); });
+    /* ---------------- members ---------------- */
+    const asha = new Client(); const ravi = new Client(); let ashaId, raviId;
+    await step('free sign-up with email; free members cannot post', async () => {
+      for (const [c, name, email] of [[asha, 'Asha Member', 'asha@example.com'], [ravi, 'Ravi Member', 'ravi@example.com']]) {
+        await c.get('/register'); assert.equal((await c.post('/register', { name, email, password: 'member-pass-123', next: '/' })).status, 303);
+      }
+      ashaId = /\/members\/(\d+)"/.exec((await asha.get('/community')).text)[1];
+      raviId = /\/members\/(\d+)"/.exec((await ravi.get('/community')).text)[1];
+      assert.match((await asha.get('/community')).text, /href="\/membership"/);
+      const r = await asha.postMultipart('/community/posts', { text: 'Free post attempt' });
+      assert.equal(r.location, '/membership');
+    });
+    await step('Silver membership through checkout unlocks posting, not video', async () => {
+      assert.match((await asha.get('/membership')).text, /£5/);
+      const c = await asha.post('/membership/checkout', { tier: 'silver', period: 'month' });
+      assert.match(c.location, /^\/membership\/pay\/KM-/);
+      assert.equal((await ravi.get(c.location)).status, 404); // someone else's checkout
+      await asha.get(c.location); const paid = await asha.post(c.location, {});
+      assert.equal(paid.location, `/members/${ashaId}`);
+      assert.match((await asha.get(`/members/${ashaId}`)).text, /badge silver/);
+      await asha.postMultipart('/community/posts', { text: 'Hello from Asha the member' }, { media: ['p.png', PNG, 'image/png'] });
+      const feed = (await anon.get('/community')).text;
+      assert.match(feed, /Hello from Asha the member/);
+      const fid = /\/files\/(\d+)" alt="Photo from Asha/.exec(feed)[1];
+      assert.equal((await anon.get('/files/' + fid)).status, 200);
+      const v = await asha.postMultipart('/community/posts', { text: 'video' }, { media: ['v.mp4', Buffer.concat([Buffer.from('00000018', 'hex'), Buffer.from('ftypmp42'), Buffer.alloc(16)]), 'video/mp4'] });
+      assert.match(decodeURIComponent(asha.jar.flash || ''), /Gold/); assert.equal(v.location, '/community');
+    });
+    let postId;
+    await step('likes, comments and follows notify the author', async () => {
+      postId = /id="post-(\d+)"[\s\S]{0,600}Asha Member/.exec((await ravi.get('/community')).text)[1];
+      await ravi.post(`/community/posts/${postId}/like`, {});
+      await ravi.post(`/community/posts/${postId}/comment`, { body: 'Lovely news Asha' });
+      await ravi.post(`/members/${ashaId}/follow`, {});
+      assert.match((await ravi.get('/community?view=following')).text, /Hello from Asha the member/);
+      const notes = (await asha.get('/notifications')).text;
+      assert.match(notes, /liked your post/); assert.match(notes, /commented on your post/); assert.match(notes, /started following you/);
+      assert.match((await asha.get(`/members/${ashaId}`)).text, /<b class="num">1<\/b> followers/);
+    });
+    await step('messages: free members reply only; paid members start chats', async () => {
+      const blocked = await ravi.post(`/messages/${ashaId}`, { body: 'Hi first' });
+      assert.equal(blocked.location, '/membership');
+      await asha.post(`/messages/${raviId}`, { body: 'Thanks for the follow, Ravi!' });
+      assert.match((await ravi.get('/community')).text, /<span class="dot num">1<\/span>/);
+      assert.match((await ravi.get('/messages')).text, /Thanks for the follow/);
+      await ravi.get(`/messages/${ashaId}`);
+      await ravi.post(`/messages/${ashaId}`, { body: 'You are welcome' });
+      assert.match((await asha.get(`/messages/${raviId}`)).text, /You are welcome/);
+    });
+    await step('blocking stops messages and hides posts', async () => {
+      await ravi.post(`/members/${ashaId}/block`, {});
+      const r = await asha.post(`/messages/${raviId}`, { body: 'Still there?' });
+      assert.match(r.location, new RegExp(`/messages/${raviId}`));
+      assert.doesNotMatch((await ravi.get('/community')).text, /Hello from Asha the member/);
+      await ravi.post(`/members/${ashaId}/block`, {});
+    });
+    await step('profiles: edit, photo, people directory; email never shown', async () => {
+      await asha.get('/me/edit');
+      await asha.postMultipart('/me/edit', { name: 'Asha Member', home_town: 'Jaffna', bio: 'Teacher' }, { avatar: ['a.png', PNG, 'image/png'] });
+      const prof = (await anon.get(`/members/${ashaId}`)).text;
+      assert.match(prof, /Jaffna/); assert.doesNotMatch(prof, /asha@example.com/);
+      assert.match((await anon.get('/members?q=Jaffna')).text, /Asha Member/);
+      const av = /\/files\/(\d+)" alt="" loading/.exec(prof)[1]; assert.equal((await anon.get('/files/' + av)).status, 200);
+    });
+    await step('members delete their own posts; admin sets prices', async () => {
+      assert.equal((await ravi.post(`/community/posts/${postId}/delete`, {})).status, 403);
+      await asha.post(`/community/posts/${postId}/delete`, {});
+      assert.doesNotMatch((await anon.get('/community')).text, /Hello from Asha the member/);
+      assert.equal((await asha.get('/admin/membership')).status, 403);
+      await admin.post('/admin/membership/prices', { silver_month: '6', silver_year: '60', gold_month: '12', gold_year: '120' });
+      assert.match((await anon.get('/membership')).text, /£6/);
+      assert.match((await admin.get('/admin/membership')).text, /Asha Member/);
+    });
     await step('logout ends the session', async () => {
       await applicant.post('/logout', {});
       assert.equal((await applicant.get('/dashboard')).status, 303);

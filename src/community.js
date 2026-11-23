@@ -13,35 +13,47 @@ const today = () => new Date().toISOString().slice(0, 10);
 
 function registerCommunity(route, H) {
   const { db, page, redirect, requireUser, partnerOrg, requireAdmin, saveFile, tx, HttpError, fileErr } = H;
-  const back = (ctx, fallback) => { const r = ctx.req.headers.referer; try { const u = new URL(r); if (u.pathname.startsWith('/')) return u.pathname + u.search; } catch { /* no referer */ } return fallback; };
+  const back = H.back = (ctx, fallback) => { const r = ctx.req.headers.referer; try { const u = new URL(r); if (u.pathname.startsWith('/')) return u.pathname + u.search; } catch { /* no referer */ } return fallback; };
 
   /* ---------------- feed ---------------- */
-  const POST_SQL = `SELECT p.*, o.name AS org_name, o.name_ta AS org_name_ta, o.slug AS org_slug, o.color AS org_color, pr.title AS project_title, pr.title_ta AS project_title_ta, pr.cause AS project_cause, pr.status AS project_status
-    FROM posts p JOIN orgs o ON o.id = p.org_id LEFT JOIN projects pr ON pr.id = p.project_id`;
+  // Posts come from partners (org_id set) or from members (org_id NULL, author in users).
+  const POST_SQL = `SELECT p.*, o.name AS org_name, o.name_ta AS org_name_ta, o.slug AS org_slug, o.color AS org_color,
+      u.name AS author_name, u.avatar_file_id AS author_avatar, u.tier AS author_tier, u.member_until AS author_until,
+      pr.title AS project_title, pr.title_ta AS project_title_ta, pr.cause AS project_cause, pr.status AS project_status
+    FROM posts p LEFT JOIN orgs o ON o.id = p.org_id LEFT JOIN users u ON u.id = p.user_id LEFT JOIN projects pr ON pr.id = p.project_id`;
+  const VISIBLE = `p.status = 'live' AND (p.org_id IS NULL OR o.status = 'verified')`;
+  H.VISIBLE = VISIBLE;
   const loadPosts = (ctx, where, args, limit = 30) => {
-    const list = db.prepare(`${POST_SQL} WHERE ${where} ORDER BY p.created_at DESC LIMIT ${limit}`).all(...args);
+    let sql = `${POST_SQL} WHERE (${where})`; const a = [...args];
+    if (ctx.user) { sql += ` AND p.user_id NOT IN (SELECT blocked_id FROM blocks WHERE user_id = ? UNION SELECT user_id FROM blocks WHERE blocked_id = ?)`; a.push(ctx.user.id, ctx.user.id); }
+    const list = db.prepare(`${sql} ORDER BY p.created_at DESC LIMIT ${limit}`).all(...a);
     const liked = new Set(ctx.user ? db.prepare('SELECT post_id FROM post_likes WHERE user_id = ?').all(ctx.user.id).map((r) => r.post_id) : []);
-    return list.map((p) => ({ ...p, liked: liked.has(p.id),
-      comments: db.prepare(`SELECT c.*, u.name AS user_name FROM comments c LEFT JOIN users u ON u.id = c.user_id WHERE c.post_id = ? AND c.status = 'live' ORDER BY c.id`).all(p.id) }));
+    const now = nowIso();
+    return list.map((p) => ({ ...p, liked: liked.has(p.id), author_tier: p.author_until && p.author_until > now ? p.author_tier : 'free',
+      comments: db.prepare(`SELECT c.*, u.name AS user_name, u.avatar_file_id AS user_avatar FROM comments c LEFT JOIN users u ON u.id = c.user_id WHERE c.post_id = ? AND c.status = 'live' ORDER BY c.id`).all(p.id) }));
   };
   H.loadPosts = loadPosts;
   route('GET', '/community', (ctx) => {
-    const posts = loadPosts(ctx, `p.status = 'live' AND o.status = 'verified'`, []);
-    page(ctx, { title: ctx.t('communityH'), active: 'community', body: C.feed(ctx, { posts }) });
+    const view = ctx.user && ctx.query.get('view') === 'following' ? 'following' : 'all';
+    const posts = view === 'following'
+      ? loadPosts(ctx, `${VISIBLE} AND (p.user_id = ? OR (p.org_id IS NULL AND p.user_id IN (SELECT followee_id FROM follows WHERE follower_id = ?)))`, [ctx.user.id, ctx.user.id], 50)
+      : loadPosts(ctx, VISIBLE, [], 50);
+    page(ctx, { title: ctx.t('communityH'), active: 'community', body: C.feed(ctx, { posts, view, can: H.can }) });
   });
   route('GET', '/community/posts/:id', (ctx) => {
-    const post = loadPosts(ctx, `p.id = ? AND p.status = 'live' AND o.status = 'verified'`, [Number(ctx.params.id)], 1)[0];
+    const post = loadPosts(ctx, `p.id = ? AND ${VISIBLE}`, [Number(ctx.params.id)], 1)[0];
     if (!post) throw new HttpError(404);
     const text = (ctx.lang === 'ta' && post.text_ta) || post.text;
-    page(ctx, { title: (ctx.lang === 'ta' && post.org_name_ta) || post.org_name, active: 'community', body: C.postPage(ctx, { post }),
-      og: { title: (ctx.lang === 'ta' && post.org_name_ta) || post.org_name, description: text.slice(0, 200), path: `/community/posts/${post.id}`, image: post.file_id && post.kind === 'photo' ? `/files/${post.file_id}` : null } });
+    const who = post.org_id ? (ctx.lang === 'ta' && post.org_name_ta) || post.org_name : post.author_name;
+    page(ctx, { title: who, active: 'community', body: C.postPage(ctx, { post }),
+      og: { title: who, description: text.slice(0, 200), path: `/community/posts/${post.id}`, image: post.file_id && post.kind === 'photo' ? `/files/${post.file_id}` : null } });
   });
-  const livePost = (id) => { const p = db.prepare(`SELECT p.* FROM posts p JOIN orgs o ON o.id = p.org_id WHERE p.id = ? AND p.status = 'live' AND o.status = 'verified'`).get(Number(id)); if (!p) throw new HttpError(404); return p; };
+  const livePost = (id) => { const p = db.prepare(`SELECT p.* FROM posts p LEFT JOIN orgs o ON o.id = p.org_id WHERE p.id = ? AND ${VISIBLE}`).get(Number(id)); if (!p) throw new HttpError(404); return p; };
   route('POST', '/community/posts/:id/like', (ctx) => {
     if (!requireUser(ctx)) return; const p = livePost(ctx.params.id);
     tx(() => {
       const had = db.prepare('DELETE FROM post_likes WHERE post_id = ? AND user_id = ?').run(p.id, ctx.user.id).changes;
-      if (!had) db.prepare('INSERT INTO post_likes (post_id, user_id) VALUES (?, ?)').run(p.id, ctx.user.id);
+      if (!had) { db.prepare('INSERT INTO post_likes (post_id, user_id) VALUES (?, ?)').run(p.id, ctx.user.id); H.notify(p.user_id, ctx.user.id, 'like', p.id); }
       db.prepare('UPDATE posts SET likes = MAX(0, likes + ?) WHERE id = ?').run(had ? -1 : 1, p.id);
     });
     redirect(ctx, `${back(ctx, '/community')}#post-${p.id}`);
@@ -52,6 +64,7 @@ function registerCommunity(route, H) {
     if (!body) return redirect(ctx, `${back(ctx, '/community')}#post-${p.id}`, { kind: 'bad', msg: ctx.t('errComment') });
     if (auth.throttled('comment:' + ctx.user.id, 30, 10 * 60 * 1000)) return redirect(ctx, back(ctx, '/community'), { kind: 'bad', msg: ctx.t('errThrottle') });
     db.prepare(`INSERT INTO comments (post_id, user_id, body, created_at) VALUES (?, ?, ?, ?)`).run(p.id, ctx.user.id, body, nowIso());
+    H.notify(p.user_id, ctx.user.id, 'comment', p.id);
     redirect(ctx, `${back(ctx, '/community')}#post-${p.id}`);
   });
   for (const kind of ['post', 'comment']) {

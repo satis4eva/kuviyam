@@ -103,7 +103,7 @@ function students(ctx, d) {
 
 /* ================= admin ================= */
 function adminTabs(ctx, active) {
-  const items = [['/admin', 'tQueue', 'queue'], ['/admin/partners', 'tPartners', 'partners'], ['/admin/donations', 'tDonations', 'donations']];
+  const items = [['/admin', 'tQueue', 'queue'], ['/admin/partners', 'tPartners', 'partners'], ['/admin/donations', 'tDonations', 'donations'], ['/admin/membership', 'tMembership', 'membership'], ['/admin/admins', 'tAdmins', 'admins']];
   return h`<nav class="tabs" aria-label="${ctx.t('adH')}">${items.map(([href, k, id]) => h`<a href="${href}" class="${active === id ? 'on' : ''}">${ctx.t(k)}</a>`)}</nav>`;
 }
 function admin(ctx, d) {
@@ -170,4 +170,18 @@ function adminDonations(ctx, d) {
   </tbody></table></section>`;
 }
 
-module.exports = { dashHead, tabs, dashboard, newProject, reportsList, reportEdit, students, admin, adminApplication, adminReport, adminPartners, adminDonations };
+function adminAdmins(ctx, d) {
+  const { t, lang } = ctx;
+  return h`<section><h1>${t('adH')}</h1><p class="muted">${t('admP')}</p></section>${adminTabs(ctx, 'admins')}
+  <section class="card tw"><table><thead><tr><th>${t('name')}</th><th>${t('email')}</th><th>${t('admSince')}</th><th></th></tr></thead><tbody>
+    ${d.list.map((u) => h`<tr><td><b>${u.name}</b>${u.id === ctx.user.id ? h` <span class="chip plain">${t('admYou')}</span>` : ''}</td><td class="tiny">${u.email}</td><td class="tiny">${dateLabel(u.created_at, lang)}</td>
+      <td>${u.id !== ctx.user.id && d.list.length > 1 ? postBtn(ctx, `/admin/admins/${u.id}/remove`, t('admRemove'), 'ghost') : ''}</td></tr>`)}
+  </tbody></table></section>
+  <section class="narrow"><form class="card pad form" method="post" action="/admin/admins">${csrfField(ctx)}
+    <h2>${t('admAddH')}</h2><p class="small muted">${t('admAddP')}</p>${errors(ctx, d.errors)}
+    <label class="f">${t('email')}<input type="email" name="email" value="${d.email || ''}" required></label>
+    <label class="f">${t('name')}<input name="name" value="${d.name || ''}"></label>
+    <label class="f">${t('admTempPw')}<input type="password" name="password" minlength="12" autocomplete="new-password"></label>
+    <button class="btn pri">${t('admAddBtn')}</button></form></section>`;
+}
+module.exports = { adminTabs, adminAdmins, dashHead, tabs, dashboard, newProject, reportsList, reportEdit, students, admin, adminApplication, adminReport, adminPartners, adminDonations };

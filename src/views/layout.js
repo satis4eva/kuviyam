@@ -3,7 +3,7 @@ const { h, raw } = require('../util');
 
 /** Layout shared by every page. */
 function layout(ctx, { title, body, active = '', og }) {
-  const { absUrl } = require('./parts');
+  const { absUrl, memberAvatar } = require('./parts');
   const { t, lang, user, csrf, flash } = ctx;
   const isPartner = user && user.orgs.some((o) => o.status === 'verified');
   const nav = [['/', 'nav_home', 'home'], ['/projects', 'nav_projects', 'projects'], ['/partners', 'nav_partners', 'partners'], ['/sponsor', 'nav_sponsor', 'sponsor'], ['/community', 'nav_community', 'community'], ['/transparency', 'nav_transparency', 'transparency']];
@@ -41,15 +41,18 @@ ${process.env.DEMO_MODE === '1' ? h`<div class="demo">${t('demoBanner')}</div>` 
     <div class="lang" role="group" aria-label="Language / மொழி">
       <a href="/lang/en?back=${raw(back)}" class="${lang === 'en' ? 'on' : ''}" hreflang="en">English</a><a href="/lang/ta?back=${raw(back)}" class="${lang === 'ta' ? 'on' : ''}" hreflang="ta">தமிழ்</a>
     </div>
-    ${user ? h`<form method="post" action="/logout" class="inline"><input type="hidden" name="_csrf" value="${csrf}"><span class="small muted">${user.name}</span> <button class="btn sm ghost">${t('logout')}</button></form>`
-           : h`<a class="btn sm" href="/login">${t('login')}</a>`}
+    ${user ? h`<a class="ico${active === 'messages' ? ' on' : ''}" href="/messages" aria-label="${t('messagesH')}" title="${t('messagesH')}">✉${ctx.counts && ctx.counts.msgs ? h`<span class="dot num">${ctx.counts.msgs}</span>` : ''}</a>
+      <a class="ico${active === 'notes' ? ' on' : ''}" href="/notifications" aria-label="${t('notesH')}" title="${t('notesH')}">🔔${ctx.counts && ctx.counts.notes ? h`<span class="dot num">${ctx.counts.notes}</span>` : ''}</a>
+      <a class="me plain" href="/members/${user.id}" title="${t('myProfile')}">${memberAvatar(user, 'sm')}<span class="small">${user.name}</span></a>
+      <form method="post" action="/logout" class="inline"><input type="hidden" name="_csrf" value="${csrf}"><button class="btn sm ghost">${t('logout')}</button></form>`
+           : h`<a class="btn sm ghost" href="/login">${t('login')}</a><a class="btn sm pri" href="/membership">${t('joinFree')}</a>`}
   </div>
 </div></header>
 <main id="main">
 ${flash ? h`<div class="flash ${flash.kind || ''}" role="status">${flash.msg}</div>` : ''}
 ${body}
 </main>
-<footer class="foot">${t('footer')}</footer>
+<footer class="foot">${t('footer')} · <a href="/membership">${t('nav_membership')}</a><br>${t('charityNo')}</footer>
 </body>
 </html>`;
 }

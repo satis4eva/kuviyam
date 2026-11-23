@@ -63,7 +63,7 @@ const SCHEMA = [
   `CREATE TABLE IF NOT EXISTS audit (id INTEGER PRIMARY KEY, user_id INTEGER, action TEXT NOT NULL, detail TEXT, created_at TEXT NOT NULL)`,
   /* ---- community hub ---- */
   `CREATE TABLE IF NOT EXISTS posts (
-     id INTEGER PRIMARY KEY, org_id INTEGER NOT NULL REFERENCES orgs(id), user_id INTEGER NOT NULL, text TEXT NOT NULL, text_ta TEXT,
+     id INTEGER PRIMARY KEY, org_id INTEGER REFERENCES orgs(id), user_id INTEGER NOT NULL, text TEXT NOT NULL, text_ta TEXT,
      project_id INTEGER, file_id INTEGER, kind TEXT NOT NULL DEFAULT 'text', status TEXT NOT NULL DEFAULT 'live', likes INTEGER NOT NULL DEFAULT 0, created_at TEXT NOT NULL)`,
   `CREATE TABLE IF NOT EXISTS post_likes (post_id INTEGER NOT NULL REFERENCES posts(id) ON DELETE CASCADE, user_id INTEGER NOT NULL, PRIMARY KEY (post_id, user_id))`,
   `CREATE TABLE IF NOT EXISTS comments (
@@ -89,6 +89,27 @@ const SCHEMA = [
   `CREATE TABLE IF NOT EXISTS memorial_events (
      id INTEGER PRIMARY KEY, memorial_id INTEGER NOT NULL REFERENCES memorials(id) ON DELETE CASCADE, kind TEXT NOT NULL, on_date TEXT NOT NULL,
      start_time TEXT, end_time TEXT, venue TEXT NOT NULL, address TEXT, stream_url TEXT)`,
+  /* ---- members: memberships, follows, messages, notifications ---- */
+  `CREATE TABLE IF NOT EXISTS settings (key TEXT PRIMARY KEY, value TEXT NOT NULL)`,
+  `CREATE TABLE IF NOT EXISTS memberships (
+     id INTEGER PRIMARY KEY, ref TEXT NOT NULL UNIQUE, user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE, tier TEXT NOT NULL, period TEXT NOT NULL,
+     amount_pence INTEGER NOT NULL, status TEXT NOT NULL DEFAULT 'pending', provider TEXT NOT NULL, provider_ref TEXT, created_at TEXT NOT NULL, paid_at TEXT)`,
+  `CREATE TABLE IF NOT EXISTS follows (
+     follower_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE, followee_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+     created_at TEXT NOT NULL, PRIMARY KEY (follower_id, followee_id))`,
+  `CREATE TABLE IF NOT EXISTS blocks (
+     user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE, blocked_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE, PRIMARY KEY (user_id, blocked_id))`,
+  `CREATE TABLE IF NOT EXISTS messages (
+     id INTEGER PRIMARY KEY, from_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE, to_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+     body TEXT NOT NULL, created_at TEXT NOT NULL, read_at TEXT)`,
+  `CREATE TABLE IF NOT EXISTS notifications (
+     id INTEGER PRIMARY KEY, user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE, actor_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+     kind TEXT NOT NULL, target_id INTEGER, created_at TEXT NOT NULL, read_at TEXT)`,
+  `CREATE INDEX IF NOT EXISTS idx_messages_pair ON messages(from_id, to_id, created_at)`,
+  `CREATE INDEX IF NOT EXISTS idx_messages_to ON messages(to_id, read_at)`,
+  `CREATE INDEX IF NOT EXISTS idx_notif_user ON notifications(user_id, read_at, created_at)`,
+  `CREATE INDEX IF NOT EXISTS idx_follows_followee ON follows(followee_id)`,
+  `CREATE INDEX IF NOT EXISTS idx_posts_user ON posts(user_id, status)`,
   `CREATE INDEX IF NOT EXISTS idx_posts_status ON posts(status, created_at)`,
   `CREATE INDEX IF NOT EXISTS idx_events_status ON events(status, starts_on)`,
   `CREATE INDEX IF NOT EXISTS idx_projects_org ON projects(org_id)`,
@@ -97,8 +118,24 @@ const SCHEMA = [
   `CREATE INDEX IF NOT EXISTS idx_files_owner ON files(owner_kind, owner_id)`
 ];
 
-const COLUMNS = { memorials: [['born_on', 'TEXT'], ['died_on', 'TEXT'], ['birthplace', 'TEXT'], ['birthplace_ta', 'TEXT'], ['lived_in', 'TEXT'], ['lived_in_ta', 'TEXT'], ['informed_by', 'TEXT'], ['contacts', 'TEXT']] };
+const COLUMNS = { users: [['bio', 'TEXT'], ['home_town', 'TEXT'], ['avatar_file_id', 'INTEGER'], ['tier', "TEXT NOT NULL DEFAULT 'free'"], ['member_until', 'TEXT']],
+  memorials: [['born_on', 'TEXT'], ['died_on', 'TEXT'], ['birthplace', 'TEXT'], ['birthplace_ta', 'TEXT'], ['lived_in', 'TEXT'], ['lived_in_ta', 'TEXT'], ['informed_by', 'TEXT'], ['contacts', 'TEXT']] };
 function migrate(db) {
+  // Members can post too, so a post no longer needs a partner: rebuild posts with org_id optional (one-off).
+  const orgCol = db.prepare(`SELECT "notnull" AS nn FROM pragma_table_info('posts') WHERE name = 'org_id'`).get();
+  if (orgCol && orgCol.nn) {
+    db.exec('PRAGMA foreign_keys = OFF');
+    db.exec('BEGIN');
+    try {
+      db.exec(`CREATE TABLE posts_new (
+        id INTEGER PRIMARY KEY, org_id INTEGER REFERENCES orgs(id), user_id INTEGER NOT NULL, text TEXT NOT NULL, text_ta TEXT,
+        project_id INTEGER, file_id INTEGER, kind TEXT NOT NULL DEFAULT 'text', status TEXT NOT NULL DEFAULT 'live', likes INTEGER NOT NULL DEFAULT 0, created_at TEXT NOT NULL)`);
+      db.exec('INSERT INTO posts_new SELECT id, org_id, user_id, text, text_ta, project_id, file_id, kind, status, likes, created_at FROM posts');
+      db.exec('DROP TABLE posts');
+      db.exec('ALTER TABLE posts_new RENAME TO posts');
+      db.exec('COMMIT');
+    } catch (e) { db.exec('ROLLBACK'); throw e; } finally { db.exec('PRAGMA foreign_keys = ON'); }
+  }
   for (const s of SCHEMA) db.exec(s);
   for (const [table, cols] of Object.entries(COLUMNS)) {
     const have = new Set(db.prepare(`PRAGMA table_info(${table})`).all().map((c) => c.name));

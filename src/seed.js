@@ -169,4 +169,39 @@ function seedNotices(db) {
   return true;
 }
 
-module.exports = { seedDemo, seedCommunity, seedNotices, samplePdf };
+/* Sample members talking to each other, so the staging feed shows how people interact. Runs once. */
+function seedMembers(db) {
+  if (db.prepare(`SELECT 1 FROM users WHERE email LIKE '%@members.demo.kuviyam.org'`).get()) return false;
+  const crypto = require('node:crypto');
+  const ago = (h) => new Date(Date.now() - h * 3600e3).toISOString();
+  const later = (days) => new Date(Date.now() + days * 864e5).toISOString();
+  const people = [
+    ['Tharsini Kumar', 'Toronto · from Point Pedro', 'Teacher in Toronto. Sponsoring two students in Vadamarachchi.', 'gold', later(300)],
+    ['Senthil Raj', 'London · from Jaffna', 'Volunteer driver for the school book drive.', 'silver', later(20)],
+    ['Meera Sivakumar', 'Kilinochchi', 'Primary teacher. I share what the children are learning.', 'silver', later(25)],
+    ['Arun Navaratnam', 'Zurich · from Batticaloa', null, 'free', null]
+  ];
+  db.exec('BEGIN');
+  try {
+    const ids = people.map(([name, town, bio, tier, until], i) => Number(db.prepare(`INSERT INTO users (email, name, password_hash, role, created_at, home_town, bio, tier, member_until) VALUES (?, ?, ?, 'donor', ?, ?, ?, ?, ?)`)
+      .run(`member${i + 1}@members.demo.kuviyam.org`, name, 'scrypt$' + crypto.randomBytes(8).toString('hex') + '$x', ago(900 - i * 100), town, bio, tier, until).lastInsertRowid));
+    const post = (who, text, h) => Number(db.prepare(`INSERT INTO posts (org_id, user_id, text, kind, status, created_at) VALUES (NULL, ?, ?, 'text', 'live', ?)`).run(ids[who], text, ago(h)).lastInsertRowid);
+    const p1 = post(0, 'Just got the first letter from Kavitha, the student I sponsor in Pallai. She came first in maths this term! Thank you Kuviyam for making this so easy.', 5);
+    const p2 = post(2, 'Our Grade 4 class finished reading the new Tamil storybooks this week. The children asked when the next box is coming 😊', 20);
+    const p3 = post(1, 'Book drive this Saturday: we are collecting O/L revision books in East Ham. Message me if you can help sort or drive.', 30);
+    const like = (pid, who) => { db.prepare('INSERT OR IGNORE INTO post_likes (post_id, user_id) VALUES (?, ?)').run(pid, ids[who]); db.prepare('UPDATE posts SET likes = likes + 1 WHERE id = ?').run(pid); };
+    [[p1, 1], [p1, 2], [p1, 3], [p2, 0], [p2, 1], [p3, 0]].forEach(([pid, w]) => like(pid, w));
+    const cmt = (pid, who, body, h) => db.prepare(`INSERT INTO comments (post_id, user_id, body, created_at) VALUES (?, ?, ?, ?)`).run(pid, ids[who], body, ago(h));
+    cmt(p1, 2, 'Wonderful news! Pallai school has a great maths teacher.', 4); cmt(p1, 1, 'Well done Kavitha 👏', 3);
+    cmt(p2, 0, 'Lovely. Which books did they like most?', 18); cmt(p2, 2, 'The animal stories, by far!', 17);
+    cmt(p3, 3, 'I am in London that weekend, count me in for sorting.', 26);
+    const follow = (a, b) => db.prepare('INSERT OR IGNORE INTO follows (follower_id, followee_id, created_at) VALUES (?, ?, ?)').run(ids[a], ids[b], ago(100));
+    [[0, 2], [1, 0], [2, 0], [3, 1], [3, 0], [1, 2]].forEach(([a, b]) => follow(a, b));
+    const msg = (a, b, body, h) => db.prepare('INSERT INTO messages (from_id, to_id, body, created_at, read_at) VALUES (?, ?, ?, ?, ?)').run(ids[a], ids[b], body, ago(h), ago(h - 0.5));
+    msg(3, 1, 'Hi Senthil, what time should I come on Saturday?', 25); msg(1, 3, 'Thanks Arun! 10am at the community hall. Bring a bag if you can.', 24);
+    db.exec('COMMIT');
+  } catch (e) { db.exec('ROLLBACK'); throw e; }
+  return true;
+}
+
+module.exports = { seedDemo, seedCommunity, seedNotices, seedMembers, samplePdf };

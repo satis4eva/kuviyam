@@ -1,7 +1,7 @@
 'use strict';
 const { h, raw, gbp, dateLabel, MON } = require('../util');
 const { dt } = require('../i18n');
-const { L, avatar, art, csrfField, options, errors, shareBar } = require('./parts');
+const { L, avatar, art, csrfField, options, errors, shareBar, memberAvatar, tierBadge } = require('./parts');
 
 const timeAgo = (ctx, iso) => {
   const mins = Math.max(1, Math.round((Date.now() - Date.parse(iso)) / 60000));
@@ -13,38 +13,62 @@ const postBtn = (ctx, action, label, cls = '') => h`<form method="post" action="
 const modeLabel = (ctx, e) => ctx.t('m_' + e.mode, { p: e.price || '' }).trim();
 
 function hubTabs(ctx, active) {
-  const items = [['/community', 'tFeed', 'feed'], ['/events', 'tEvents', 'events'], ['/memorials', 'tMemorials', 'memorials']];
+  const items = [['/community', 'tFeed', 'feed'], ['/members', 'tMembers', 'members'], ['/events', 'tEvents', 'events'], ['/memorials', 'tMemorials', 'memorials']];
   return h`<nav class="tabs" aria-label="${ctx.t('communityH')}">${items.map(([href, k, id]) => h`<a href="${href}" class="${active === id ? 'on' : ''}">${ctx.t(k)}</a>`)}</nav>`;
 }
 
 /* ---------------- feed ---------------- */
 function postCard(ctx, p, { full = true } = {}) {
-  const { t, lang } = ctx;
-  const org = { name: p.org_name, color: p.org_color };
-  const media = p.file_id ? (p.kind === 'video' ? h`<video src="/files/${p.file_id}" controls preload="metadata"></video>` : h`<img src="/files/${p.file_id}" alt="${t('photoBy', { o: L(p, 'org_name', lang) })}" loading="lazy">`)
-    : art(p.project_id || p.id, p.project_cause || 'Education');
-  return h`<article class="card post" id="post-${p.id}">
-    <div class="post-h">${avatar(org)}<div class="grow0"><a class="plain" href="/partners/${p.org_slug}"><b class="small">${L(p, 'org_name', lang)}</b></a><div class="tiny muted">${timeAgo(ctx, p.created_at)} · ${t(p.kind === 'video' ? 'video' : p.kind === 'photo' ? 'photo' : 'update')}</div></div></div>
-    <div class="thumb">${media}</div>
-    <div class="pad stack"><p class="small">${full ? L(p, 'text', lang) : h`<a class="plain" href="/community/posts/${p.id}">${L(p, 'text', lang)}</a>`}</p>${p.project_id && p.project_status === 'live' ? h`<a class="small" href="/projects/${p.project_id}">🔗 ${lang === 'ta' && p.project_title_ta ? p.project_title_ta : p.project_title}</a>` : ''}</div>
+  const { t, lang, user } = ctx;
+  const byMember = p.org_id === null || p.org_id === undefined;
+  const author = byMember ? { id: p.user_id, name: p.author_name || t('member'), avatar_file_id: p.author_avatar } : null;
+  const who = byMember ? author.name : L(p, 'org_name', lang);
+  const head = byMember
+    ? h`<a class="plain" href="/members/${p.user_id}">${memberAvatar(author)}</a><div class="grow0"><a class="plain" href="/members/${p.user_id}"><b class="small">${author.name}</b></a> ${tierBadge(ctx, p.author_tier)}<div class="tiny muted">${timeAgo(ctx, p.created_at)}</div></div>`
+    : h`${avatar({ name: p.org_name, color: p.org_color })}<div class="grow0"><a class="plain" href="/partners/${p.org_slug}"><b class="small">${L(p, 'org_name', lang)}</b></a> <span class="verified tiny">✓</span><div class="tiny muted">${timeAgo(ctx, p.created_at)} · ${t(p.kind === 'video' ? 'video' : p.kind === 'photo' ? 'photo' : 'update')}</div></div>`;
+  const media = p.file_id ? (p.kind === 'video' ? h`<video src="/files/${p.file_id}" controls preload="metadata"></video>` : h`<img src="/files/${p.file_id}" alt="${t('photoBy', { o: who })}" loading="lazy">`)
+    : byMember ? '' : art(p.project_id || p.id, p.project_cause || 'Education');
+  const text = L(p, 'text', lang);
+  const mine = user && (user.role === 'admin' || (byMember && user.id === p.user_id));
+  return h`<article class="card post${byMember && !p.file_id ? ' textonly' : ''}" id="post-${p.id}">
+    <div class="post-h">${head}${mine && full ? h`<span class="push"></span>${postBtn(ctx, `/community/posts/${p.id}/delete`, t('delete'), 'link')}` : ''}</div>
+    ${text ? h`<div class="pad-x"><p class="${byMember && !p.file_id ? 'say' : 'small'}">${full ? text : h`<a class="plain" href="/community/posts/${p.id}">${text}</a>`}</p></div>` : ''}
+    ${media ? h`<div class="thumb">${media}</div>` : ''}
+    ${p.project_id && p.project_status === 'live' ? h`<div class="pad-x"><a class="small" href="/projects/${p.project_id}">🔗 ${lang === 'ta' && p.project_title_ta ? p.project_title_ta : p.project_title}</a></div>` : ''}
     ${full ? h`<div class="post-a">
-      ${postBtn(ctx, `/community/posts/${p.id}/like`, h`${p.liked ? '♥' : '♡'} <span class="num">${p.likes}</span>`, 'ghost')}
+      ${postBtn(ctx, `/community/posts/${p.id}/like`, h`${p.liked ? '♥' : '♡'} <span class="num">${p.likes}</span>`, p.liked ? 'ghost liked' : 'ghost')}
+      <a class="btn sm ghost" href="#c${p.id}">💬 <span class="num">${p.comments.length}</span></a>
       ${p.project_id && p.project_status === 'live' ? h`<a class="btn sm give" href="/donate?kind=project&amp;id=${p.project_id}">${t('donate')}</a>` : ''}
-      <span class="push"></span>${postBtn(ctx, `/community/posts/${p.id}/report`, t('report'), 'ghost')}
+      <span class="push"></span>${byMember && user && user.id !== p.user_id ? h`<a class="btn sm ghost" href="/messages/${p.user_id}">${t('message')}</a>` : ''}${postBtn(ctx, `/community/posts/${p.id}/report`, t('report'), 'ghost')}
     </div>
-    <div class="pad-x">${shareBar(ctx, `/community/posts/${p.id}`, `${L(p, 'org_name', lang)}: ${String(L(p, 'text', lang)).slice(0, 100)}`)}</div>
-    <div class="comments">${p.comments.map((c) => h`<div class="cmt"><b>${c.user_name || t('member')}</b> ${c.body} ${postBtn(ctx, `/community/comments/${c.id}/report`, t('reportShort'), 'link')}</div>`)}
-      ${ctx.user ? h`<form method="post" action="/community/posts/${p.id}/comment" class="cform">${csrfField(ctx)}<label class="sr" for="c${p.id}">${t('writeComment')}</label><input id="c${p.id}" name="body" maxlength="500" required placeholder="${t('writeComment')}"><button class="btn sm">${t('post')}</button></form>`
-                 : h`<a class="tiny" href="/login?next=/community">${t('loginToComment')}</a>`}
+    <div class="pad-x">${shareBar(ctx, `/community/posts/${p.id}`, `${who}: ${String(text || '').slice(0, 100)}`)}</div>
+    <div class="comments">${p.comments.map((c) => h`<div class="cmt row top nowrap"><a class="plain" href="/members/${c.user_id}">${memberAvatar({ id: c.user_id, name: c.user_name || t('member'), avatar_file_id: c.user_avatar }, 'sm')}</a>
+        <div class="bubble"><a class="plain" href="/members/${c.user_id}"><b>${c.user_name || t('member')}</b></a> ${c.body}
+          <div class="tiny muted">${timeAgo(ctx, c.created_at)} · ${postBtn(ctx, `/community/comments/${c.id}/report`, t('reportShort'), 'link')}${user && (user.role === 'admin' || user.id === c.user_id || (byMember && user.id === p.user_id)) ? h` · ${postBtn(ctx, `/community/comments/${c.id}/delete`, t('delete'), 'link')}` : ''}</div></div></div>`)}
+      ${user ? h`<form method="post" action="/community/posts/${p.id}/comment" class="cform">${csrfField(ctx)}<label class="sr" for="c${p.id}">${t('writeComment')}</label><input id="c${p.id}" name="body" maxlength="500" required placeholder="${t('writeComment')}"><button class="btn sm">${t('post')}</button></form>`
+             : h`<a class="tiny" href="/login?next=/community">${t('loginToComment')}</a>`}
     </div>` : ''}
   </article>`;
+}
+function composer(ctx, can) {
+  const { t, user } = ctx;
+  if (!user) return h`<div class="card pad row between"><span>${t('joinToPost')}</span><span class="row"><a class="btn" href="/login?next=/community">${t('login')}</a><a class="btn pri" href="/register?next=/community">${t('joinFree')}</a></span></div>`;
+  if (!can.post(user)) return h`<div class="card pad row between"><span class="row nowrap">${memberAvatar(user)}<span class="small">${t('upsellPost')}</span></span><a class="btn give" href="/membership">${t('seePlans')}</a></div>`;
+  return h`<form class="card pad composer" method="post" action="/community/posts" enctype="multipart/form-data">${csrfField(ctx)}
+    <div class="row top nowrap">${memberAvatar(user)}<label class="sr" for="newpost">${t('whatsNew')}</label><textarea id="newpost" name="text" rows="2" maxlength="2000" placeholder="${t('whatsNewName', { n: String(user.name).split(' ')[0] })}"></textarea></div>
+    <div class="row between"><label class="btn sm ghost file">📷 ${t(can.video(user) ? 'addPhotoVideo' : 'addPhoto')}<input type="file" name="media" accept="image/jpeg,image/png,image/webp${can.video(user) ? ',video/mp4' : ''}"></label><button class="btn pri">${t('post')}</button></div>
+  </form>`;
 }
 function feed(ctx, d) {
   const { t, user } = ctx;
   const isPartner = user && user.orgs.some((o) => o.status === 'verified');
-  return h`<section class="sec-h"><div><h1>${t('communityH')}</h1><p class="muted measure">${t('communityP')}</p></div>${isPartner ? h`<a class="btn pri" href="/dashboard/posts">${t('postMedia')}</a>` : ''}</section>
+  return h`<section class="sec-h"><div><h1>${t('communityH')}</h1><p class="muted measure">${t('communityP')}</p></div>${isPartner ? h`<a class="btn" href="/dashboard/posts">${t('postAsPartner')}</a>` : ''}</section>
     ${hubTabs(ctx, 'feed')}
-    <div class="grid g3">${d.posts.length ? d.posts.map((p) => postCard(ctx, p)) : h`<div class="empty">${t('noPosts')}</div>`}</div>`;
+    <div class="feedcol stack">
+      ${composer(ctx, d.can)}
+      ${user ? h`<nav class="seg" aria-label="${t('tFeed')}"><a href="/community" class="${d.view === 'all' ? 'on' : ''}">${t('feedAll')}</a><a href="/community?view=following" class="${d.view === 'following' ? 'on' : ''}">${t('feedFollowing')}</a></nav>` : ''}
+      ${d.posts.length ? d.posts.map((p) => postCard(ctx, p)) : h`<div class="empty">${d.view === 'following' ? h`${t('noFollowingPosts')} <a href="/members">${t('findPeople')}</a>` : t('noPosts')}</div>`}
+    </div>`;
 }
 
 /* ---------------- events ---------------- */
@@ -211,4 +235,4 @@ function postPage(ctx, d) {
   return h`<section class="narrow wide2 stack"><a class="small" href="/community">← ${ctx.t('backToFeed')}</a>${postCard(ctx, d.post)}</section>`;
 }
 
-module.exports = { postPage, postCard, eventCard, feed, events, memorials, memorial, memorialForm, dashPosts, dashEvents, adminMemorial, postBtn };
+module.exports = { hubTabs, timeAgo, postPage, postCard, eventCard, feed, events, memorials, memorial, memorialForm, dashPosts, dashEvents, adminMemorial, postBtn };

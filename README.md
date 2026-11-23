@@ -9,6 +9,7 @@ Tamil and English giving platform for Kuviyam (kuviyam.org): verified charities,
 - **Join as a partner:** account, then an application with registration, constitution, accounts and ID documents (PDF/JPG/PNG/WebP, 5 MB each, checked by content).
 - **Partner dashboard:** overview, bilingual projects, monthly reports with expense lines and receipt uploads, submit for review, students (first name only).
 - **Community hub:** partner feed with photos and short videos, likes, comments and reporting; events with approval and RSVP; obituaries and memorials with approval, candles, condolences and giving in memory.
+- **Members:** free sign-up with email; Silver and Gold paid memberships (prices set by admins, test payments until DPayments is live). Profiles with photo, home town and bio, follow, people search, member posts with photos (Gold: videos), likes and comments, one-to-one messages, notifications, blocking.
 - **Admin:** review queue (applications with documents, monthly reports), approve or send back, partners list with suspend/reinstate, donations list.
 
 ## Run it
