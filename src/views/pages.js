@@ -1,36 +1,75 @@
 'use strict';
 const { h, raw, gbp, lkr, monthLabel, dateLabel, RATE_LKR_PER_GBP } = require('../util');
 const { dt, CAUSES, TYPES, DISTRICTS, COUNTRIES } = require('../i18n');
-const { L, pct, avatar, verifiedTag, art, projectCard, csrfField, options, errors, shareBar } = require('./parts');
+const { L, pct, avatar, verifiedTag, art, projectCard, csrfField, options, errors, shareBar, memberAvatar } = require('./parts');
 const C = require('./community');
 
 /* ---------------- home ---------------- */
+/*
+ * Home: a short welcome, then large white boxes, one per part of the site. Each box shows something live
+ * (the most urgent project, the newest post, the next event) so the page always looks current.
+ * Every label is shown in both Tamil and English, whichever language is selected.
+ */
+function homeBox(ctx, { href, key, icon, en, ta, live, extra = '', cls = '' }) {
+  const { lang } = ctx;
+  const [first, second] = lang === 'ta' ? [ta, en] : [en, ta];
+  return h`<a class="hbox s-${key} ${cls}" href="${href}">
+    <span class="hb-top"><span class="hb-ic" aria-hidden="true">${icon}</span><span class="hb-name"><b>${first}</b><span lang="${lang === 'ta' ? 'en' : 'ta'}">${second}</span></span><span class="hb-go" aria-hidden="true">→</span></span>
+    ${extra}<span class="hb-live">${live}</span></a>`;
+}
 function home(ctx, d) {
-  const { t } = ctx;
+  const { t, lang, user } = ctx; const b = d.box;
+  const top = b.top;
+  const lp = b.latestPost;
+  const lpWho = lp ? (lp.org_id ? L(lp, 'org_name', lang) : lp.author) : '';
+  const lpText = lp ? String(L(lp, 'text', lang) || '').slice(0, 90) : '';
+  const ev = b.nextEvent;
+  const BI = (en, ta) => ({ en, ta });
+  const label = { projects: BI('Projects', 'திட்டங்கள்'), sponsor: BI('Sponsor a student', 'மாணவர் அனுசரணை'), feed: BI('Community feed', 'சமூகப் பதிவுகள்'), people: BI('People', 'மக்கள்'),
+    events: BI('Events', 'நிகழ்வுகள்'), notices: BI('Notices', 'அறிவித்தல்கள்'), partners: BI('Partners', 'பங்காளர்கள்'), spend: BI('Where money goes', 'பணம் எங்கே செல்கிறது'), join: BI('Join free', 'இலவசமாக இணைக'), me: BI('Your space', 'உங்கள் பகுதி') };
+  const boxes = [
+    homeBox(ctx, { href: top ? `/projects/${top.id}` : '/projects', key: 'projects', icon: '🤝', ...label.projects, cls: 'wide',
+      extra: top ? h`<span class="hb-feature">${top.urgent ? h`<span class="chip bad">${t('urgent')}</span> ` : ''}<b>${L(top, 'title', lang)}</b><span class="prog" role="progressbar" aria-valuenow="${pct(top)}" aria-valuemin="0" aria-valuemax="100" aria-label="${t('funded', { p: pct(top) })}"><i style="width:${pct(top)}%"></i></span><span class="small muted num">${t('ofGoal', { r: gbp(top.raised_pence), g: gbp(top.goal_pence) })} · ${t('donors', { n: top.donors })}</span></span>` : '',
+      live: t('hbProjects', { n: d.projects }) }),
+    homeBox(ctx, { href: '/sponsor', key: 'sponsor', icon: '🎓', ...label.sponsor, live: b.waiting.n ? t('hbWaiting', { n: b.waiting.n, p: gbp(b.waiting.m) }) : t('hbAllSponsored', { n: d.sponsored }) }),
+    homeBox(ctx, { href: '/community', key: 'feed', icon: '💬', ...label.feed,
+      extra: lp ? h`<span class="hb-quote"><b>${lpWho}:</b> “${lpText}${lpText.length >= 90 ? '…' : ''}”</span>` : '',
+      live: h`${b.faces.length ? h`<span class="faces">${b.faces.map((f) => memberAvatar(f, 'sm'))}</span>` : ''}${b.postsToday ? t('hbPostsToday', { n: b.postsToday }) : t('hbSeeFeed')}` }),
+    homeBox(ctx, { href: '/members', key: 'people', icon: '👥', ...label.people, live: b.towns.length ? t('hbPeopleTowns', { n: b.members, p: b.towns.join(', ') }) : t('hbPeople', { n: b.members }) }),
+    homeBox(ctx, { href: ev ? `/events#event-${ev.id}` : '/events', key: 'events', icon: '📅', ...label.events,
+      live: ev ? h`<b>${dateLabel(ev.starts_on, lang)}</b> · ${L(ev, 'title', lang)}${ev.going ? h` · ${t('going', { n: ev.going })}` : ''}` : t('hbNoEvents') }),
+    homeBox(ctx, { href: '/memorials', key: 'notices', icon: '🪔', ...label.notices,
+      live: b.notices ? t('hbNotices', { n: b.notices }) : b.latestNotice ? t('hbLatestNotice', { n: L(b.latestNotice, 'name', lang) }) : t('hbNoticesNone') }),
+    homeBox(ctx, { href: '/partners', key: 'partners', icon: '🏫', ...label.partners, live: t('hbPartners', { n: d.partners }) }),
+    homeBox(ctx, { href: '/transparency', key: 'spend', icon: '🧾', ...label.spend,
+      live: b.spent ? t('hbSpent', { a: lkr(b.spent.lkr.s, lang), m: monthLabel(b.spent.month, lang), n: b.spent.lkr.docs }) : t('hbSpendNone') })
+  ];
+  // First box: a personal one for members, an invitation for visitors.
+  const counts = ctx.counts || {};
+  const first = user
+    ? homeBox(ctx, { href: counts.msgs ? '/messages' : counts.notes ? '/notifications' : `/members/${user.id}`, key: 'me', icon: '⭐', ...label.me, cls: 'hb-me',
+        extra: h`<span class="row nowrap">${memberAvatar(user)}<b>${t('hiName', { n: String(user.name).split(' ')[0] })}</b></span>`,
+        live: counts.msgs || counts.notes ? t('hbMine', { m: counts.msgs || 0, n: counts.notes || 0 }) : user.tier === 'free' ? t('hbUpgrade') : t('hbMember', { t: t('tier_' + user.tier) }) })
+    : homeBox(ctx, { href: '/membership', key: 'join', icon: '⭐', ...label.join, cls: 'hb-join', live: t('hbJoin') });
   return h`
-  <section class="hero">
-    <div>
-      <div class="row"><span class="chip">${t('heroChip')}</span><span class="chip plain">${t('tagline')}</span></div>
-      <h1>${t('heroH')}</h1>
-      <p class="lead">${t('heroP')}</p>
-      <form class="search" action="/projects" method="get" role="search"><label for="q" class="sr">${t('searchLbl')}</label><input id="q" name="q" placeholder="${t('searchPh')}"><button class="btn pri">${t('search')}</button></form>
+  <section class="welcome">
+    <div class="w-text">
+      <p class="w-hello" lang="ta">வணக்கம்</p>
+      <h1>${user ? t('welcomeBack', { n: String(user.name).split(' ')[0] }) : t('heroH')}</h1>
+      <p class="lead">${t('homeLead')}</p>
+      <form class="search" action="/projects" method="get" role="search"><label for="q" class="sr">${t('searchLbl')}</label><input id="q" name="q" placeholder="${t('searchPh')}"><button class="btn">${t('search')}</button></form>
     </div>
-    <div class="stats">
-      <div class="stat"><b class="num">${gbp(d.raised)}</b><span class="small muted">${t('stRaised')}</span></div>
-      <div class="stat"><b class="num">${d.partners}</b><span class="small muted">${t('stPartners')}</span></div>
-      <div class="stat"><b class="num">${d.projects}</b><span class="small muted">${t('stProjects')}</span></div>
-      <div class="stat"><b class="num">${d.sponsored}</b><span class="small muted">${t('stStudents')}</span></div>
+    <div class="w-side">
+      <a class="btn give big-btn" href="${top ? `/donate?kind=project&id=${top.id}` : '/projects'}">${t('giveNow')}</a>
+      <div class="w-stats"><span><b class="num">${gbp(d.raised)}</b> ${t('stRaised')}</span><span><b class="num">${d.sponsored}</b> ${t('stStudents')}</span><span><b class="num">${d.partners}</b> ${t('stPartners')}</span></div>
     </div>
   </section>
+  <section class="hgrid" aria-label="${t('homeBoxes')}">${first}${boxes}</section>
   <section><div class="sec-h"><h2>${t('urgentNeeds')}</h2><a href="/projects">${t('allProjects')}</a></div>
     <div class="grid g3">${d.urgent.map((p) => projectCard(ctx, p))}</div></section>
-  <section><div class="sec-h"><h2>${t('fromCommunity')}</h2><a href="/community">${t('openFeed')}</a></div>
-    <div class="grid g3">${d.posts.map((p) => C.postCard(ctx, p, { full: false }))}</div></section>
-  ${d.events.length ? h`<section><div class="sec-h"><h2>${t('upcomingEvents')}</h2><a href="/events">${t('allEvents')}</a></div><div class="grid g3">${d.events.map((e) => C.eventCard(ctx, e, false))}</div></section>` : ''}
-  <section class="grid g2">
-    <div class="card pad stack"><h3>${t('trH')}</h3><p class="small muted">${t('trP')}</p><div><a class="btn pri" href="/transparency">${t('trBtn')}</a></div></div>
-    <div class="card pad stack"><h3>${t('joinH')}</h3><p class="small muted">${t('joinP')}</p><div><a class="btn give" href="/join">${t('joinBtn')}</a></div></div>
-  </section>`;
+  ${d.posts.length ? h`<section><div class="sec-h"><h2>${t('fromCommunity')}</h2><a href="/community">${t('openFeed')}</a></div>
+    <div class="grid g3">${d.posts.map((p) => C.postCard(ctx, p, { full: false }))}</div></section>` : ''}
+  ${d.events.length ? h`<section><div class="sec-h"><h2>${t('upcomingEvents')}</h2><a href="/events">${t('allEvents')}</a></div><div class="grid g3">${d.events.map((e) => C.eventCard(ctx, e, false))}</div></section>` : ''}`;
 }
 
 /* ---------------- projects ---------------- */

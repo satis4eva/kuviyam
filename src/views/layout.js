@@ -12,7 +12,7 @@ function layout(ctx, { title, body, active = '', og }) {
   if (user && user.role === 'admin') nav.push(['/admin', 'nav_admin', 'admin']);
   const back = encodeURIComponent(ctx.url.pathname + ctx.url.search);
   return h`<!DOCTYPE html>
-<html lang="${lang}">
+<html lang="${lang}"${ctx.big ? raw(' class="big"') : ''}>
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -36,8 +36,9 @@ ${og && og.image ? h`<meta property="og:image" content="${absUrl(ctx, og.image)}
 ${process.env.DEMO_MODE === '1' ? h`<div class="demo">${t('demoBanner')}</div>` : ''}
 <header class="bar"><div class="bar-in">
   <a class="logo" href="/"><img src="/static/logo.svg" alt="" width="32" height="32"><span><b>${t('brand')}</b><small>${t('tagline')}</small></span></a>
-  <nav class="nav" aria-label="Main">${nav.map(([href, key, id]) => h`<a href="${href}" class="${active === id ? 'on' : ''}">${t(key)}</a>`)}</nav>
+  <nav class="nav" aria-label="Main">${nav.map(([href, key, id]) => h`<a href="${href}" class="${active === id ? 'on' : ''}${id === 'dashboard' || id === 'admin' ? ' keep' : ''}">${t(key)}</a>`)}</nav>
   <div class="tools">
+    <a class="tsize" href="/textsize?big=${ctx.big ? '0' : '1'}&amp;back=${raw(back)}" aria-label="${t(ctx.big ? 'textSmaller' : 'textBigger')}" title="${t(ctx.big ? 'textSmaller' : 'textBigger')}" aria-pressed="${ctx.big ? 'true' : 'false'}">A<span>A</span></a>
     <div class="lang" role="group" aria-label="Language / மொழி">
       <a href="/lang/en?back=${raw(back)}" class="${lang === 'en' ? 'on' : ''}" hreflang="en">English</a><a href="/lang/ta?back=${raw(back)}" class="${lang === 'ta' ? 'on' : ''}" hreflang="ta">தமிழ்</a>
     </div>
@@ -52,9 +53,19 @@ ${process.env.DEMO_MODE === '1' ? h`<div class="demo">${t('demoBanner')}</div>` 
 ${flash ? h`<div class="flash ${flash.kind || ''}" role="status">${flash.msg}</div>` : ''}
 ${body}
 </main>
-<footer class="foot">${t('footer')} · <a href="/membership">${t('nav_membership')}</a><br>${t('charityNo')}</footer>
+${tabbar(ctx, active)}
+<footer class="foot">${t('footer')} · <a href="/membership">${t('nav_membership')}</a> · <a href="/join">${t('nav_join')}</a> · <a href="/transparency">${t('nav_transparency')}</a><br>${t('charityNo')}</footer>
 </body>
 </html>`;
+}
+
+/* Bottom bar on phones: the five things people do most, always one tap away. */
+function tabbar(ctx, active) {
+  const { t, user } = ctx; const c = ctx.counts || {};
+  const items = [['/', '🏠', 'tabHome', active === 'home'], ['/community', '💬', 'tabFeed', active === 'community'], ['/projects', '🤝', 'tabGive', active === 'projects' || active === 'sponsor'],
+    user ? ['/messages', '✉️', 'tabMessages', active === 'messages', c.msgs] : ['/membership', '⭐', 'tabJoin', active === 'membership'],
+    user ? [`/members/${user.id}`, '👤', 'tabMe', false, c.notes] : ['/login', '👤', 'login', false]];
+  return h`<nav class="tabbar" aria-label="${t('quickMenu')}">${items.map(([href, icon, key, on, n]) => h`<a href="${href}" class="${on ? 'on' : ''}"><span class="tb-ic" aria-hidden="true">${icon}${n ? h`<span class="dot num">${n}</span>` : ''}</span><span>${t(key)}</span></a>`)}</nav>`;
 }
 
 module.exports = { layout };

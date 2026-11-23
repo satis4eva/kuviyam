@@ -48,7 +48,7 @@ function members(ctx, d) {
   const { t } = ctx;
   return h`<section class="sec-h"><div><h1>${t('membersH')}</h1><p class="muted">${t('membersP')}</p></div>${ctx.user ? h`<a class="btn" href="/me/edit">${t('editProfile')}</a>` : h`<a class="btn pri" href="/register?next=/me/edit">${t('joinFree')}</a>`}</section>
     ${hubTabs(ctx, 'members')}
-    <form class="row search" method="get" action="/members"><label class="sr" for="mq">${t('searchMembers')}</label><input id="mq" name="q" value="${d.q || ''}" placeholder="${t('searchMembersPh')}"><button class="btn">${t('search')}</button></form>
+    <form class="row msearch" method="get" action="/members"><label class="sr" for="mq">${t('searchMembers')}</label><input id="mq" name="q" value="${d.q || ''}" placeholder="${t('searchMembersPh')}"><button class="btn">${t('search')}</button></form>
     <div class="grid g3">${d.list.length ? d.list.map((u) => personRow(ctx, u, h`<span class="tiny muted num">${t('nFollowers', { n: u.followers })}</span>`)) : h`<div class="empty">${t('noMembers')}</div>`}</div>`;
 }
 function profile(ctx, d) {

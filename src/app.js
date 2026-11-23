@@ -72,19 +72,44 @@ function createApp(db) {
     ctx.cookies.push(auth.cookie('lang', code, { maxAge: 365 * 86400, secure: secure(ctx.req), httpOnly: false }));
     redirect(ctx, safeNext(ctx.query.get('back')));
   });
+  // Larger text for anyone who finds the site hard to read; remembered in a cookie.
+  route('GET', '/textsize', (ctx) => {
+    const big = ctx.query.get('big') === '1';
+    ctx.cookies.push(auth.cookie('big', big ? '1' : '', { maxAge: big ? 365 * 86400 : 0, secure: secure(ctx.req), httpOnly: false }));
+    redirect(ctx, safeNext(ctx.query.get('back')));
+  });
   route('GET', '/healthz', (ctx) => { ctx.res.writeHead(200, { 'Content-Type': 'text/plain' }); ctx.res.end('ok'); });
   route('GET', '/robots.txt', (ctx) => { ctx.res.writeHead(200, { 'Content-Type': 'text/plain' }); ctx.res.end(process.env.DEMO_MODE === '1' ? 'User-agent: *\nDisallow: /\n' : 'User-agent: *\nDisallow: /admin\nDisallow: /dashboard\nDisallow: /files\n'); });
 
   /* ---------------- public pages ---------------- */
   route('GET', '/', (ctx) => {
     const live = db.prepare(`${PROJECT_SQL} WHERE o.status = 'verified' AND p.status = 'live' ORDER BY p.urgent DESC, p.created_at DESC`).all();
+    const today = new Date().toISOString().slice(0, 10);
+    const dayAgo = new Date(Date.now() - 864e5).toISOString(); const weekAgo = new Date(Date.now() - 7 * 864e5).toISOString();
+    const VIS = `p.status = 'live' AND (p.org_id IS NULL OR o.status = 'verified')`;
+    const latestPost = db.prepare(`SELECT p.text, p.text_ta, p.org_id, u.name AS author, o.name AS org_name, o.name_ta AS org_name_ta FROM posts p LEFT JOIN orgs o ON o.id = p.org_id LEFT JOIN users u ON u.id = p.user_id WHERE ${VIS} ORDER BY p.created_at DESC LIMIT 1`).get();
+    const lastMonth = db.prepare(`SELECT r.month FROM reports r JOIN orgs o ON o.id = r.org_id WHERE r.status = 'published' AND o.status = 'verified' ORDER BY r.month DESC LIMIT 1`).get();
     const d = {
       raised: live.reduce((a, p) => a + p.raised_pence, 0), projects: live.length,
       partners: db.prepare(`SELECT COUNT(*) n FROM orgs WHERE status = 'verified'`).get().n,
       sponsored: db.prepare(`SELECT COUNT(*) n FROM students WHERE sponsored = 1`).get().n,
       urgent: live.filter((p) => p.urgent).slice(0, 6),
-      posts: H.loadPosts(ctx, `p.status = 'live' AND o.status = 'verified'`, [], 3),
-      events: db.prepare(`SELECT e.*, o.name AS org_name, o.name_ta AS org_name_ta, o.slug AS org_slug FROM events e JOIN orgs o ON o.id = e.org_id WHERE e.status = 'live' AND o.status = 'verified' AND e.starts_on >= ? ORDER BY e.starts_on LIMIT 3`).all(new Date().toISOString().slice(0, 10))
+      posts: H.loadPosts(ctx, VIS, [], 3),
+      events: db.prepare(`SELECT e.*, o.name AS org_name, o.name_ta AS org_name_ta, o.slug AS org_slug FROM events e JOIN orgs o ON o.id = e.org_id WHERE e.status = 'live' AND o.status = 'verified' AND e.starts_on >= ? ORDER BY e.starts_on LIMIT 3`).all(today),
+      // Live bits for the home boxes.
+      box: {
+        top: live.find((p) => p.urgent) || live[0] || null,
+        waiting: db.prepare(`SELECT COUNT(*) n, MIN(monthly_pence) m FROM students s JOIN orgs o ON o.id = s.org_id WHERE s.sponsored = 0 AND o.status = 'verified'`).get(),
+        postsToday: db.prepare(`SELECT COUNT(*) n FROM posts p LEFT JOIN orgs o ON o.id = p.org_id WHERE ${VIS} AND p.created_at >= ?`).get(dayAgo).n,
+        latestPost,
+        faces: db.prepare(`SELECT DISTINCT u.id, u.name, u.avatar_file_id FROM posts p JOIN users u ON u.id = p.user_id WHERE p.org_id IS NULL AND p.status = 'live' ORDER BY p.created_at DESC LIMIT 4`).all(),
+        members: db.prepare(`SELECT COUNT(*) n FROM users WHERE role != 'admin'`).get().n,
+        towns: db.prepare(`SELECT home_town, COUNT(*) n FROM users WHERE home_town IS NOT NULL GROUP BY home_town ORDER BY n DESC LIMIT 3`).all().map((r) => r.home_town),
+        nextEvent: db.prepare(`SELECT e.*, (SELECT COUNT(*) FROM events e2 JOIN orgs o2 ON o2.id = e2.org_id WHERE e2.status = 'live' AND o2.status = 'verified' AND e2.starts_on >= ?) AS upcoming FROM events e JOIN orgs o ON o.id = e.org_id WHERE e.status = 'live' AND o.status = 'verified' AND e.starts_on >= ? ORDER BY e.starts_on LIMIT 1`).get(today, today),
+        notices: db.prepare(`SELECT COUNT(*) n FROM memorial_notices n JOIN memorials m ON m.id = n.memorial_id WHERE n.status = 'live' AND m.status = 'live' AND n.created_at >= ?`).get(weekAgo).n,
+        latestNotice: db.prepare(`SELECT m.name, m.name_ta FROM memorial_notices n JOIN memorials m ON m.id = n.memorial_id WHERE n.status = 'live' AND m.status = 'live' ORDER BY n.created_at DESC LIMIT 1`).get(),
+        spent: lastMonth ? { month: lastMonth.month, lkr: db.prepare(`SELECT COALESCE(SUM(e.amount_lkr),0) s, COUNT(e.file_id) docs FROM expenses e JOIN reports r ON r.id = e.report_id JOIN orgs o ON o.id = r.org_id WHERE r.status = 'published' AND o.status = 'verified' AND r.month = ?`).get(lastMonth.month) } : null
+      }
     };
     if (!d.urgent.length) d.urgent = live.slice(0, 6);
     page(ctx, { body: P.home(ctx, d), active: 'home' });
@@ -596,6 +621,7 @@ function createApp(db) {
       if (cookies.flash) { try { ctx.flash = JSON.parse(cookies.flash); } catch { /* ignore */ } ctx.cookies.push(auth.cookie('flash', '', { maxAge: 0 })); }
       ctx.user = auth.userFromSession(db, cookies.sid);
       ctx.counts = H.counts ? H.counts(ctx.user) : null;
+      ctx.big = cookies.big === '1';
       if (req.method === 'POST') {
         const type = req.headers['content-type'] || '';
         if (type.startsWith('multipart/form-data')) { const parsed = parseMultipart(await readBody(req, MAX_UPLOAD), type); ctx.body = parsed.fields; ctx.files = parsed.files; }
