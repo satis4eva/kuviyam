@@ -4,7 +4,7 @@
  *   background  the page behind the boxes
  *   main        buttons, links, menus (teal by default)
  *   give        the Give and Donate buttons (saffron by default)
- * They apply to the light look; people whose phone is in dark mode keep the dark colours.
+ * In dark mode the page stays dark but buttons and links take the chosen colours.
  */
 const { audit } = require('./db');
 const { clean } = require('./util');
@@ -44,7 +44,13 @@ function registerTheme(route, H) {
     const t = H.theme();
     if (t.bg === DEFAULTS.bg && t.brand === DEFAULTS.brand && t.accent === DEFAULTS.accent) return '';
     const line = mix(t.bg, '#13232B', 0.86);
-    return `@media not (prefers-color-scheme:dark){:root{--bg:${t.bg};--line:${line};--brand:${t.brand};--brand-soft:${mix(t.brand, '#FFFFFF', 0.12)};--accent:${t.accent};--accent-ink:${inkOn(t.accent)}}.btn.pri,.lang a.on,.seg a.on,.tsize[aria-pressed="true"]{color:${inkOn(t.brand)}}}`;
+    // Light look first (works on every browser), then dark mode keeps its dark page but takes the chosen
+    // main and Give colours, lightened so they still read on a dark background.
+    const darkBrand = luminance(t.brand) < 0.25 ? mix(t.brand, '#FFFFFF', 0.55) : t.brand;
+    return `:root{--bg:${t.bg};--line:${line};--brand:${t.brand};--brand-soft:${mix(t.brand, '#FFFFFF', 0.12)};--accent:${t.accent};--accent-ink:${inkOn(t.accent)}}`
+      + `.btn.pri,.lang a.on,.seg a.on,.tsize[aria-pressed="true"]{color:${inkOn(t.brand)}}`
+      + `@media (prefers-color-scheme:dark){:root{--bg:#0E1618;--line:#25363A;--brand:${darkBrand};--brand-soft:${mix(t.brand, '#162226', 0.3)};--accent:${t.accent};--accent-ink:${inkOn(t.accent)}}`
+      + `.btn.pri,.lang a.on,.seg a.on,.tsize[aria-pressed="true"]{color:${inkOn(darkBrand)}}}`;
   };
 
   route('GET', '/admin/theme', (ctx) => {

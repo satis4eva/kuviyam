@@ -173,7 +173,7 @@ const T = {
   colAccentHint: ['Give and Donate buttons', 'வழங்கு, நன்கொடை பொத்தான்கள்'],
   themePreview: ['Preview', 'முன்னோட்டம்'],
   themeReset: ['Back to the original colours', 'மூல வண்ணங்களுக்குத் திரும்பு'],
-  themeDarkNote: ['Visitors whose phone or computer is set to dark mode keep the dark colours.', 'இருண்ட பயன்முறையில் உள்ளவர்கள் இருண்ட வண்ணங்களையே காண்பர்.'],
+  themeDarkNote: ['On phones and computers set to dark mode, the page stays dark but buttons and links use your colours.', 'இருண்ட பயன்முறையில் பக்கம் இருண்டதாகவே இருக்கும்; பொத்தான்களும் இணைப்புகளும் உங்கள் வண்ணங்களைப் பயன்படுத்தும்.'],
   themeSaved: ['Colours saved. The whole site uses them now.', 'வண்ணங்கள் சேமிக்கப்பட்டன. முழுத் தளமும் இப்போது இவற்றைப் பயன்படுத்துகிறது.'],
   errColour: ['Pick a colour for each field.', 'ஒவ்வொன்றுக்கும் ஒரு நிறத்தைத் தேர்ந்தெடுங்கள்.'],
   errBgDark: ['That background is too dark. Pick a lighter one so text stays easy to read.', 'அந்தப் பின்னணி மிகவும் இருண்டது. எழுத்துகள் தெளிவாகத் தெரிய வெளிர் நிறத்தைத் தேர்ந்தெடுங்கள்.'],
