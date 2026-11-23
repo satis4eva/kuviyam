@@ -44,7 +44,10 @@ function createApp(db) {
   const partnerOrg = (ctx) => {
     if (!requireUser(ctx)) return null;
     const o = ctx.user.orgs.find((x) => x.status === 'verified');
-    if (!o) { redirect(ctx, '/join'); return null; }
+    if (!o) {
+      if (ctx.user.role === 'admin') { page(ctx, { title: ctx.t('pdH'), active: 'dashboard', body: P.message(ctx, ctx.t('pdH'), ctx.t('pdAdminOnly'), ['/admin', ctx.t('nav_admin')]) }); return null; }
+      redirect(ctx, '/join', { kind: 'warn', msg: ctx.t('pdNeedPartner') }); return null;
+    }
     return db.prepare('SELECT * FROM orgs WHERE id = ?').get(o.id);
   };
   const requireAdmin = (ctx) => {
