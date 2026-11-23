@@ -235,6 +235,10 @@ async function step(name, fn) { await fn(); passed++; console.log('  ✓', name)
       assert.match((await anon.get('/events')).text, /Kilinochchi prize day/);
       await member.get('/events'); await member.post(`/events/${eid}/rsvp`, {});
       assert.match((await member.get('/events')).text, /You’re going/);
+      const page = await anon.get(`/events/${eid}`); assert.equal(page.status, 200); assert.match(page.text, /Kilinochchi prize day/);
+      assert.match((await anon.get('/events')).text, new RegExp(`href="/events/${eid}"`));
+      const ics = await anon.get(`/events/${eid}/calendar.ics`); assert.match(ics.type, /text\/calendar/); assert.match(ics.text, /SUMMARY:Kilinochchi prize day/);
+      assert.match((await anon.get('/')).text, /href="\/events\/\d+"/);
     });
     await step('memorials: approval, candles, condolences, giving in memory', async () => {
       await member.get('/memorials/new');

@@ -51,7 +51,7 @@ function home(ctx, d) {
       live: t('hbProjects', { n: d.projects }) }),
     homeBox(ctx, { href: '/sponsor', key: 'sponsor', icon: '🎓', ...BI('Sponsor a student', 'மாணவர் அனுசரணை'), band: art(1, 'Libraries'),
       live: b.waiting.n ? t('hbWaiting', { n: b.waiting.n, p: gbp(b.waiting.m) }) : t('hbAllSponsored', { n: d.sponsored }) }),
-    homeBox(ctx, { href: ev ? `/events#event-${ev.id}` : '/events', key: 'events', icon: '📅', ...BI('Events', 'நிகழ்வுகள்'),
+    homeBox(ctx, { href: ev ? `/events/${ev.id}` : '/events', key: 'events', icon: '📅', ...BI('Events', 'நிகழ்வுகள்'),
       band: ev ? h`<span class="hb-date"><b>${+evDate[2]}</b><span>${MON[lang][+evDate[1] - 1]}</span></span>` : h`<span class="hb-emoji">🎉</span>`,
       live: ev ? h`<b>${L(ev, 'title', lang)}</b>${ev.going ? h` · ${t('going', { n: ev.going })}` : ''}` : t('hbNoEvents') }),
     homeBox(ctx, { href: '/members', key: 'people', icon: '👥', ...BI('People', 'மக்கள்'),

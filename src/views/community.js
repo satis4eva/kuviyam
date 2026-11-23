@@ -74,14 +74,35 @@ function feed(ctx, d) {
 /* ---------------- events ---------------- */
 function eventCard(ctx, e, withRsvp = true) {
   const { t, lang } = ctx; const [y, m, dd] = e.starts_on.split('-');
-  return h`<article class="card pad row top nowrap" id="event-${e.id}">
-    <div class="date"><b>${+dd}</b><span class="tiny">${MON[lang][+m - 1]} ${y.slice(2)}</span></div>
-    <div class="stack grow0"><h3>${L(e, 'title', lang)}</h3><div class="small muted">${L(e, 'place', lang)} · ${modeLabel(ctx, e)}</div>
-      ${L(e, 'details', lang) ? h`<p class="small">${L(e, 'details', lang)}</p>` : ''}
+  const href = `/events/${e.id}`;
+  return h`<article class="card pad row top nowrap ev-card" id="event-${e.id}">
+    <a class="date plain" href="${href}" aria-hidden="true" tabindex="-1"><b>${+dd}</b><span class="tiny">${MON[lang][+m - 1]} ${y.slice(2)}</span></a>
+    <div class="stack grow0"><h3><a class="plain ev-link" href="${href}">${L(e, 'title', lang)}</a></h3><div class="small muted">${L(e, 'place', lang)} · ${modeLabel(ctx, e)}</div>
+      ${L(e, 'details', lang) ? h`<p class="small clamp2">${L(e, 'details', lang)}</p>` : ''}
       <div class="small">${t('hostedBy')} <a href="/partners/${e.org_slug}">${L(e, 'org_name', lang)}</a></div>
-      ${withRsvp ? h`<div class="row between"><span class="small muted num">${t('going', { n: e.going })}</span>
-        ${ctx.user ? postBtn(ctx, `/events/${e.id}/rsvp`, e.going_me ? t('youGoing') : t('rsvp'), e.going_me ? 'pri' : '') : h`<a class="btn sm" href="/login?next=/events">${t('rsvp')}</a>`}</div>` : ''}
+      <div class="row between"><span class="small muted num">${t('going', { n: e.going })}</span>
+        <span class="row">${withRsvp ? (ctx.user ? postBtn(ctx, `/events/${e.id}/rsvp`, e.going_me ? t('youGoing') : t('rsvp'), e.going_me ? 'pri' : '') : h`<a class="btn sm" href="/login?next=${href}">${t('rsvp')}</a>`) : ''}<a class="btn sm${withRsvp ? ' ghost' : ' pri'}" href="${href}">${t('evDetails')}</a></span></div>
     </div></article>`;
+}
+function eventPage(ctx, d) {
+  const { t, lang, user } = ctx; const e = d.event; const [y, m, dd] = e.starts_on.split('-');
+  const title = L(e, 'title', lang);
+  return h`<section class="narrow wide2 stack"><a class="small" href="/events">← ${t('eventsH')}</a>
+    <article class="card ev-page">
+      <div class="ev-hero"><span class="date big-date"><b>${+dd}</b><span>${MON[lang][+m - 1]} ${y}</span></span>
+        <div class="stack6"><h1>${title}</h1><span class="muted">${dateLabel(e.starts_on, lang)} · ${L(e, 'place', lang)}</span><span class="chip plain">${modeLabel(ctx, e)}</span></div></div>
+      <div class="pad stack">
+        ${L(e, 'details', lang) ? h`<p class="ev-details">${L(e, 'details', lang)}</p>` : ''}
+        <div class="row nowrap">${avatar({ name: e.org_name, color: e.org_color })}<span class="small">${t('hostedBy')} <a href="/partners/${e.org_slug}"><b>${L(e, 'org_name', lang)}</b></a></span></div>
+        <div class="row between ev-actions"><span class="num"><b>${t('going', { n: e.going })}</b></span>
+          <span class="row">${user ? postBtn(ctx, `/events/${e.id}/rsvp`, e.going_me ? t('youGoing') : t('rsvpGoing'), e.going_me ? 'pri' : 'pri') : h`<a class="btn pri" href="/login?next=/events/${e.id}">${t('rsvpGoing')}</a>`}
+          <a class="btn" href="/events/${e.id}/calendar.ics">📅 ${t('addToCalendar')}</a>
+          ${e.place && e.mode !== 'online' ? h`<a class="btn" href="https://www.google.com/maps/search/?api=1&amp;query=${encodeURIComponent(e.place)}" target="_blank" rel="noopener">📍 ${t('directions')}</a>` : ''}</span></div>
+      </div>
+      <div class="pad-x" style="padding-bottom:16px">${shareBar(ctx, `/events/${e.id}`, `${title} · ${dateLabel(e.starts_on, lang)}`)}</div>
+    </article>
+    ${d.more.length ? h`<h2>${t('moreEvents')}</h2><div class="stack">${d.more.map((x) => eventCard(ctx, x, false))}</div>` : ''}
+  </section>`;
 }
 function events(ctx, d) {
   const { t, user } = ctx;
@@ -235,4 +256,4 @@ function postPage(ctx, d) {
   return h`<section class="narrow wide2 stack"><a class="small" href="/community">← ${ctx.t('backToFeed')}</a>${postCard(ctx, d.post)}</section>`;
 }
 
-module.exports = { hubTabs, timeAgo, postPage, postCard, eventCard, feed, events, memorials, memorial, memorialForm, dashPosts, dashEvents, adminMemorial, postBtn };
+module.exports = { hubTabs, timeAgo, postPage, postCard, eventCard, eventPage, feed, events, memorials, memorial, memorialForm, dashPosts, dashEvents, adminMemorial, postBtn };

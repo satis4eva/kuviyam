@@ -86,6 +86,31 @@ function registerCommunity(route, H) {
     const mine = new Set(ctx.user ? db.prepare('SELECT event_id FROM rsvps WHERE user_id = ?').all(ctx.user.id).map((r) => r.event_id) : []);
     page(ctx, { title: ctx.t('eventsH'), active: 'community', body: C.events(ctx, { list: list.map((e) => ({ ...e, going_me: mine.has(e.id) })) }) });
   });
+  const liveEvent = (ctx, id) => {
+    const e = db.prepare(`SELECT e.*, o.name AS org_name, o.name_ta AS org_name_ta, o.slug AS org_slug, o.color AS org_color FROM events e JOIN orgs o ON o.id = e.org_id
+      WHERE e.id = ? AND e.status = 'live' AND o.status = 'verified'`).get(Number(id));
+    if (!e) throw new HttpError(404);
+    e.going_me = !!(ctx.user && db.prepare('SELECT 1 FROM rsvps WHERE event_id = ? AND user_id = ?').get(e.id, ctx.user.id));
+    return e;
+  };
+  route('GET', '/events/:id', (ctx) => {
+    const e = liveEvent(ctx, ctx.params.id);
+    const more = db.prepare(`SELECT e.*, o.name AS org_name, o.name_ta AS org_name_ta, o.slug AS org_slug FROM events e JOIN orgs o ON o.id = e.org_id
+      WHERE e.status = 'live' AND o.status = 'verified' AND e.starts_on >= ? AND e.id != ? ORDER BY e.starts_on LIMIT 3`).all(today(), e.id);
+    const title = (ctx.lang === 'ta' && e.title_ta) || e.title;
+    page(ctx, { title, active: 'community', body: C.eventPage(ctx, { event: e, more }),
+      og: { title, description: String((ctx.lang === 'ta' && e.details_ta) || e.details || e.place).slice(0, 200), path: `/events/${e.id}` } });
+  });
+  // One-click 'add to calendar' (works with iPhone, Android, Outlook and Google Calendar).
+  route('GET', '/events/:id/calendar.ics', (ctx) => {
+    const e = liveEvent(ctx, ctx.params.id);
+    const d = e.starts_on.replace(/-/g, ''); const next = new Date(e.starts_on + 'T00:00:00Z'); next.setUTCDate(next.getUTCDate() + 1);
+    const esc = (v) => String(v || '').replace(/\\/g, '\\\\').replace(/[,;]/g, (c) => '\\' + c).replace(/\r?\n/g, '\\n');
+    const ics = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//Kuviyam//Events//EN', 'BEGIN:VEVENT', `UID:event-${e.id}@kuviyam`, `DTSTAMP:${new Date().toISOString().replace(/[-:]/g, '').slice(0, 15)}Z`,
+      `DTSTART;VALUE=DATE:${d}`, `DTEND;VALUE=DATE:${next.toISOString().slice(0, 10).replace(/-/g, '')}`, `SUMMARY:${esc(e.title)}`, `LOCATION:${esc(e.place)}`, `DESCRIPTION:${esc((e.details || '') + ' (' + e.org_name + ')')}`, 'END:VEVENT', 'END:VCALENDAR'].join('\r\n');
+    ctx.res.writeHead(200, { 'Content-Type': 'text/calendar; charset=utf-8', 'Content-Disposition': `attachment; filename="kuviyam-event-${e.id}.ics"`, 'Cache-Control': 'no-store' });
+    ctx.res.end(ics);
+  });
   route('POST', '/events/:id/rsvp', (ctx) => {
     if (!requireUser(ctx)) return;
     const e = db.prepare(`SELECT e.id FROM events e JOIN orgs o ON o.id = e.org_id WHERE e.id = ? AND e.status = 'live' AND o.status = 'verified'`).get(Number(ctx.params.id)); if (!e) throw new HttpError(404);
@@ -95,7 +120,7 @@ function registerCommunity(route, H) {
       if (!had) { db.prepare('INSERT INTO rsvps (event_id, user_id) VALUES (?, ?)').run(e.id, ctx.user.id); on = true; }
       db.prepare('UPDATE events SET going = MAX(0, going + ?) WHERE id = ?').run(had ? -1 : 1, e.id);
     });
-    redirect(ctx, `/events#event-${e.id}`, { kind: 'good', msg: ctx.t(on ? 'rsvpOn' : 'rsvpOff') });
+    redirect(ctx, back(ctx, `/events/${e.id}`), { kind: 'good', msg: ctx.t(on ? 'rsvpOn' : 'rsvpOff') });
   });
 
   /* ---------------- memorials (notices like a Tamil obituary board) ---------------- */

@@ -157,6 +157,8 @@ const T = {
   birthplaceEn: ['Home town or village (English)', 'சொந்த ஊர் (ஆங்கிலம்)'], birthplaceTa: ['Home town or village (Tamil)', 'சொந்த ஊர் (தமிழ்)'], birthplacePh: ['e.g. Point Pedro', 'எ.கா. பருத்தித்துறை'],
   livedInEn: ['Lived in (English)', 'வாழ்ந்த இடம் (ஆங்கிலம்)'], livedInTa: ['Lived in (Tamil)', 'வாழ்ந்த இடம் (தமிழ்)'], livedInPh: ['e.g. Toronto, London', 'எ.கா. ரொறன்ரோ, லண்டன்'],
   mainPhoto: ['Main photo', 'பிரதான புகைப்படம்'], morePhotos: ['More photos (up to 6)', 'மேலும் புகைப்படங்கள் (6 வரை)'], qNotice: ['Notice', 'அறிவித்தல்'],
+  /* events */
+  evDetails: ['Details and RSVP', 'விவரங்களும் வருகையும்'], rsvpGoing: ['I\'m going', 'நான் வருகிறேன்'], addToCalendar: ['Add to calendar', 'நாட்காட்டியில் சேர்'], moreEvents: ['More events', 'மேலும் நிகழ்வுகள்'],
   /* theme */
   toDark: ['Dark mode', 'இருண்ட பயன்முறை'], toLight: ['Light mode', 'வெளிர் பயன்முறை'],
   lightH: ['Always use the light look', 'எப்போதும் வெளிர் தோற்றம்'],
