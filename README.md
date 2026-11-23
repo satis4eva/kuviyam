@@ -27,6 +27,7 @@ npm test           # end-to-end smoke test on a temporary database
 | `PORT` | Port to listen on (default 3000) |
 | `DATA_DIR` | Folder for the database, kept outside the app so deploys never wipe it (default `~/kuviyam-data`) |
 | `SETUP_CODE` | One-time code that lets you create the first admin at `/setup`. The page closes once an admin exists. |
+| `ADMIN_EMAIL` / `ADMIN_PASSWORD` | On start, creates this admin (or makes that account admin and resets its password). Password 12+ characters. Remove both once you can sign in. |
 | `PAYMENT_PROVIDER` | `test` (default). `dpayments` once the integration is built. |
 | `SEED_DEMO` | `1` loads the sample partners, projects and reports on an empty database |
 | `DEMO_MODE` | `1` shows the staging banner, hides the site from search engines and shows the demo partner login |
