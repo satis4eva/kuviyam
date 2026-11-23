@@ -110,7 +110,7 @@ function admin(ctx, d) {
   const { t, lang } = ctx;
   return h`<section><h1>${t('adH')}</h1><p class="muted">${t('adP')}</p></section>
   <section class="grid g4">
-    <div class="card pad"><div class="small muted">${t('waitingReview')}</div><b class="num mid">${d.apps.length + d.reports.length + d.events.length + d.memorials.length + d.flags.length}</b></div>
+    <div class="card pad"><div class="small muted">${t('waitingReview')}</div><b class="num mid">${d.apps.length + d.reports.length + d.events.length + d.memorials.length + d.flags.length + (d.notices || []).length}</b></div>
     <div class="card pad"><div class="small muted">${t('livePartners')}</div><b class="num mid">${d.stats.partners}</b></div>
     <div class="card pad"><div class="small muted">${t('donationsPaid')}</div><b class="num mid">${gbp(d.stats.paid)}</b></div>
     <div class="card pad"><div class="small muted">${t('lateReports')}</div><b class="num mid">${d.stats.late}</b></div>
@@ -121,9 +121,11 @@ function admin(ctx, d) {
     ${d.events.map((e) => h`<div class="queue-item"><div><span class="chip plain">${t('qEvent')}</span><div><b>${L(e, 'title', lang)}</b></div><div class="small muted">${L(e, 'org_name', lang)} · ${dateLabel(e.starts_on, lang)} · ${L(e, 'place', lang)}</div></div>
       <div class="row">${postBtn(ctx, `/admin/events/${e.id}/approve`, t('approve'), 'pri')}${postBtn(ctx, `/admin/events/${e.id}/reject`, t('reject'))}</div></div>`)}
     ${d.memorials.map((m) => h`<div class="queue-item"><div><span class="chip plain">${t('qObit')}</span><div><b>${L(m, 'name', lang)}</b></div><div class="small muted">${m.years} · ${L(m, 'town', lang)}</div></div><a class="btn sm" href="/admin/memorials/${m.id}">${t('reviewApp')}</a></div>`)}
+    ${(d.notices || []).map((n) => h`<div class="queue-item"><div><span class="chip plain">${t('qNotice')}</span><div><b>${L(n, 'name', lang)}</b> · ${t('nt_' + n.type)}</div><div class="small muted">${String(n.body).slice(0, 140)}</div></div>
+      <div class="row">${postBtn(ctx, `/admin/notices/${n.id}/approve`, t('approve'), 'pri')}${postBtn(ctx, `/admin/notices/${n.id}/reject`, t('reject'))}</div></div>`)}
     ${d.flags.map((f) => h`<div class="queue-item"><div><span class="chip warn">${t('qFlag')}</span><div class="small">${(f.text || '').slice(0, 140)}</div>${f.reason ? h`<div class="tiny muted">${f.reason}</div>` : ''}</div>
       <div class="row">${postBtn(ctx, `/admin/flags/${f.id}/keep`, t('keepPost'))}${postBtn(ctx, `/admin/flags/${f.id}/remove`, t('removePost'), 'pri')}</div></div>`)}
-    ${d.apps.length + d.reports.length + d.events.length + d.memorials.length + d.flags.length ? '' : h`<div class="empty">${t('allClear')}</div>`}
+    ${d.apps.length + d.reports.length + d.events.length + d.memorials.length + d.flags.length + (d.notices || []).length ? '' : h`<div class="empty">${t('allClear')}</div>`}
   </section>`;
 }
 function adminApplication(ctx, d) {

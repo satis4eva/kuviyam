@@ -83,6 +83,12 @@ const SCHEMA = [
   `CREATE TABLE IF NOT EXISTS condolences (
      id INTEGER PRIMARY KEY, memorial_id INTEGER NOT NULL REFERENCES memorials(id) ON DELETE CASCADE, user_id INTEGER NOT NULL, name TEXT NOT NULL, body TEXT NOT NULL,
      status TEXT NOT NULL DEFAULT 'live', created_at TEXT NOT NULL)`,
+  `CREATE TABLE IF NOT EXISTS memorial_notices (
+     id INTEGER PRIMARY KEY, memorial_id INTEGER NOT NULL REFERENCES memorials(id) ON DELETE CASCADE, user_id INTEGER NOT NULL, type TEXT NOT NULL,
+     body TEXT NOT NULL, body_ta TEXT, status TEXT NOT NULL DEFAULT 'pending', reason TEXT, created_at TEXT NOT NULL)`,
+  `CREATE TABLE IF NOT EXISTS memorial_events (
+     id INTEGER PRIMARY KEY, memorial_id INTEGER NOT NULL REFERENCES memorials(id) ON DELETE CASCADE, kind TEXT NOT NULL, on_date TEXT NOT NULL,
+     start_time TEXT, end_time TEXT, venue TEXT NOT NULL, address TEXT, stream_url TEXT)`,
   `CREATE INDEX IF NOT EXISTS idx_posts_status ON posts(status, created_at)`,
   `CREATE INDEX IF NOT EXISTS idx_events_status ON events(status, starts_on)`,
   `CREATE INDEX IF NOT EXISTS idx_projects_org ON projects(org_id)`,
@@ -91,7 +97,18 @@ const SCHEMA = [
   `CREATE INDEX IF NOT EXISTS idx_files_owner ON files(owner_kind, owner_id)`
 ];
 
-function migrate(db) { for (const s of SCHEMA) db.exec(s); }
+const COLUMNS = { memorials: [['born_on', 'TEXT'], ['died_on', 'TEXT'], ['birthplace', 'TEXT'], ['birthplace_ta', 'TEXT'], ['lived_in', 'TEXT'], ['lived_in_ta', 'TEXT'], ['informed_by', 'TEXT'], ['contacts', 'TEXT']] };
+function migrate(db) {
+  for (const s of SCHEMA) db.exec(s);
+  for (const [table, cols] of Object.entries(COLUMNS)) {
+    const have = new Set(db.prepare(`PRAGMA table_info(${table})`).all().map((c) => c.name));
+    for (const [name, type] of cols) if (!have.has(name)) db.exec(`ALTER TABLE ${table} ADD COLUMN ${name} ${type}`);
+  }
+  // Older memorials kept their text in memorials.tribute: give each one an obituary notice.
+  db.exec(`INSERT INTO memorial_notices (memorial_id, user_id, type, body, body_ta, status, created_at)
+    SELECT m.id, m.user_id, 'obituary', m.tribute, m.tribute_ta, CASE m.status WHEN 'live' THEN 'live' WHEN 'pending' THEN 'pending' ELSE 'rejected' END, m.created_at
+    FROM memorials m WHERE NOT EXISTS (SELECT 1 FROM memorial_notices n WHERE n.memorial_id = m.id)`);
+}
 
 const audit = (db, userId, action, detail) =>
   db.prepare('INSERT INTO audit (user_id, action, detail, created_at) VALUES (?, ?, ?, ?)').run(userId ?? null, action, detail ? String(detail).slice(0, 500) : null, nowIso());

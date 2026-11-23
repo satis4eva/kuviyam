@@ -225,15 +225,28 @@ async function step(name, fn) { await fn(); passed++; console.log('  ✓', name)
     });
     await step('memorials: approval, candles, condolences, giving in memory', async () => {
       await member.get('/memorials/new');
-      const r = await member.postMultipart('/memorials', { name: 'Sinnathamby Rasiah', years: '1938 – 2026', town: 'Point Pedro', tribute: 'Teacher and gardener.', project_id: '4' }, { photo: ['p.png', PNG, 'image/png'] });
+      assert.equal((await member.postMultipart('/memorials', { name: 'X', died_on: '2026-11-01', born_on: '2027-01-01', birthplace: 'Y', body: 'Z' })).status, 400, 'death before birth');
+      const r = await member.postMultipart('/memorials', { name: 'Sinnathamby Rasiah', name_ta: 'சின்னத்தம்பி இராசையா', born_on: '1938-04-02', died_on: '2026-11-18', birthplace: 'Point Pedro', birthplace_ta: 'பருத்தித்துறை', lived_in: 'Toronto',
+        type: 'obituary', body: 'Teacher and gardener.', body_ta: 'ஆசிரியரும் தோட்டக்காரரும்.', informed_by: 'Family', contacts: 'Ravi – son – +1 416 555 0100', project_id: '4',
+        ev_kind_0: 'viewing', ev_date_0: '2026-11-24', ev_start_0: '17:00', ev_end_0: '20:00', ev_venue_0: 'Chapel Ridge', ev_address_0: '8911 Woodbine Ave, Markham', ev_stream_0: 'https://example.com/live', ev_kind_1: 'cremation', ev_date_1: '', ev_venue_1: '' },
+        { photo: ['p.png', PNG, 'image/png'], gallery: ['g1.png', PNG, 'image/png'] });
       assert.equal(r.location, '/memorials');
       const q = await admin.get('/admin'); const mid = /\/admin\/memorials\/(\d+)/.exec(q.text)[1];
       assert.equal((await anon.get('/memorials/' + mid)).status, 404);
       await admin.get('/admin/memorials/' + mid); await admin.post(`/admin/memorials/${mid}/approve`, {});
       assert.match((await anon.get('/memorials')).text, /Sinnathamby Rasiah/);
+      const page = await anon.get('/memorials/' + mid);
+      assert.match(page.text, /Born in Point Pedro · Lived in Toronto/); assert.match(page.text, /Age 88/); assert.match(page.text, /Chapel Ridge/); assert.match(page.text, /Watch live/); assert.match(page.text, /google\.com\/maps\/search/); assert.match(page.text, /Ravi – son/);
+      assert.match((await anon.get('/memorials?type=obituary&q=point+pedro')).text, /Sinnathamby Rasiah/);
+      assert.doesNotMatch((await anon.get('/memorials?type=thanks')).text, /Sinnathamby Rasiah/);
+      await member.post(`/memorials/${mid}/notices`, { type: 'r31', body: 'Thank you all for your kindness.' });
+      const q2 = await admin.get('/admin'); const nid = /\/admin\/notices\/(\d+)\/approve/.exec(q2.text)[1];
+      await admin.post(`/admin/notices/${nid}/approve`, {});
+      assert.match((await anon.get('/memorials')).text, /31st day remembrance/);
+      assert.equal((await anon.post(`/memorials/${mid}/notices`, { type: 'r31', body: 'x' })).status, 303, 'anonymous goes to login');
       await anon.get('/memorials/' + mid);
       await anon.post(`/memorials/${mid}/candle`, {}); await anon.post(`/memorials/${mid}/candle`, {});
-      assert.match((await anon.get('/memorials/' + mid)).text, /1 candles lit/);
+      assert.match((await anon.get('/memorials/' + mid)).text, /🕯️ 1</);
       await member.get('/memorials/' + mid); await member.post(`/memorials/${mid}/condolence`, { name: 'Ravi', body: 'Rest in peace, Sir.' });
       assert.match((await anon.get('/memorials/' + mid)).text, /Rest in peace, Sir\./);
       await anon.get(`/donate?kind=memorial&id=${mid}`);

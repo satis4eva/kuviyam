@@ -152,4 +152,21 @@ function seedCommunity(db) {
   return true;
 }
 
-module.exports = { seedDemo, seedCommunity, samplePdf };
+/** Demo notice details (dates, places, events, a 31st-day notice). Safe to run on every start. */
+function seedNotices(db) {
+  db.exec(`INSERT INTO memorial_notices (memorial_id, user_id, type, body, body_ta, status, created_at)
+    SELECT m.id, m.user_id, 'obituary', m.tribute, m.tribute_ta, CASE m.status WHEN 'live' THEN 'live' WHEN 'pending' THEN 'pending' ELSE 'rejected' END, m.created_at
+    FROM memorials m WHERE NOT EXISTS (SELECT 1 FROM memorial_notices n WHERE n.memorial_id = m.id)`);
+  const m = db.prepare(`SELECT * FROM memorials WHERE name = 'Selvanayagam Kandiah' AND user_id = 0`).get();
+  if (!m || m.birthplace) return false;
+  const day = (d) => new Date(Date.now() + d * 864e5).toISOString().slice(0, 10);
+  db.prepare(`UPDATE memorials SET born_on = '1941-03-12', died_on = ?, birthplace = 'Karainagar', birthplace_ta = 'காரைநகர்', lived_in = 'Jaffna, Wembley (London)', lived_in_ta = 'யாழ்ப்பாணம், வெம்பிளி (லண்டன்)',
+    informed_by = 'Family', contacts = 'Ragu – son – +44 7700 900123\nMalar – daughter – malar@example.com' WHERE id = ?`).run(day(-9), m.id);
+  db.prepare(`INSERT INTO memorial_events (memorial_id, kind, on_date, start_time, end_time, venue, address, stream_url) VALUES (?, 'viewing', ?, '16:00', '19:00', 'Harrow Funeral Home', '12 Example Road, Harrow HA1 1AA', NULL)`).run(m.id, day(-6));
+  db.prepare(`INSERT INTO memorial_events (memorial_id, kind, on_date, start_time, end_time, venue, address, stream_url) VALUES (?, 'cremation', ?, '11:00', '13:00', 'Breakspear Crematorium', 'Breakspear Road, Ruislip HA4 7SJ', 'https://www.youtube.com/')`).run(m.id, day(-5));
+  db.prepare(`INSERT INTO memorial_notices (memorial_id, user_id, type, body, body_ta, status, created_at) VALUES (?, 0, 'r31', ?, ?, 'live', ?)`)
+    .run(m.id, 'The family invites relatives and friends to the 31st day remembrance prayers. Thank you for your love and support.', 'அன்னாரின் 31ஆம் நாள் நினைவஞ்சலிப் பிரார்த்தனைக்கு உற்றார், உறவினர், நண்பர்களை அன்புடன் அழைக்கின்றோம். உங்கள் அன்புக்கும் ஆதரவுக்கும் நன்றி.', new Date(Date.now() - 3600e3).toISOString());
+  return true;
+}
+
+module.exports = { seedDemo, seedCommunity, seedNotices, samplePdf };
