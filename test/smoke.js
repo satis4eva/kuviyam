@@ -200,7 +200,7 @@ async function step(name, fn) { await fn(); passed++; console.log('  ✓', name)
     await step('community feed shows partner posts in both languages', async () => {
       const f = await anon.get('/community'); assert.equal(f.status, 200); assert.match(f.text, /water tank at Haputale/); assert.match(f.text, /Log in to like/);
       const ta = new Client(); await ta.get('/lang/ta?back=/'); assert.match((await ta.get('/community')).text, /அப்புத்தளையில்/);
-      assert.match((await anon.get('/')).text, /From the community/);
+      assert.match((await anon.get('/')).text, /Community feed/);
     });
     await step('partner posts a photo and a video; bad media is refused', async () => {
       await partner.get('/dashboard/posts');

@@ -158,6 +158,11 @@ const T = {
   livedInEn: ['Lived in (English)', 'வாழ்ந்த இடம் (ஆங்கிலம்)'], livedInTa: ['Lived in (Tamil)', 'வாழ்ந்த இடம் (தமிழ்)'], livedInPh: ['e.g. Toronto, London', 'எ.கா. ரொறன்ரோ, லண்டன்'],
   mainPhoto: ['Main photo', 'பிரதான புகைப்படம்'], morePhotos: ['More photos (up to 6)', 'மேலும் புகைப்படங்கள் (6 வரை)'], qNotice: ['Notice', 'அறிவித்தல்'],
   /* home boxes */
+  homeH: ['Your community, giving together.', 'உங்கள் சமூகம், இணைந்து வழங்குவோம்.'],
+  hbShare: ['Share something', 'ஏதாவது பகிருங்கள்'],
+  hbJoinIn: ['Join in', 'இணையுங்கள்'],
+  hbPeopleSharing: ['{n} people sharing news, photos and updates', '{n} பேர் செய்திகள், புகைப்படங்கள், தகவல்களைப் பகிர்கின்றனர்'],
+  hbOpenFeed: ['See all posts →', 'அனைத்துப் பதிவுகளையும் பார் →'],
   homeLead: ['Give to checked charities, sponsor a student, keep in touch with people from home, and see every rupee spent.', 'சரிபார்க்கப்பட்ட அமைப்புகளுக்கு வழங்குங்கள், மாணவருக்கு அனுசரணை வழங்குங்கள், ஊர் மக்களுடன் தொடர்பில் இருங்கள், ஒவ்வொரு ரூபாயின் செலவையும் பாருங்கள்.'],
   welcomeBack: ['Welcome back, {n}', 'மீண்டும் வருக, {n}'],
   giveNow: ['Give now', 'இப்போதே வழங்குக'],
