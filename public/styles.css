@@ -166,9 +166,13 @@ td.r,th.r,.r{text-align:right}
 .condol{border-left:3px solid var(--line);padding-left:12px}
 .clamp{display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
 .narrow.wide2{max-width:760px}
-/* share buttons */
-.share{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
-.sbtn{font:inherit;font-size:13px;font-weight:600;padding:4px 10px;border-radius:999px;border:1px solid var(--line);background:var(--surface);color:var(--ink);text-decoration:none;cursor:pointer}
-.sbtn:hover{border-color:var(--brand)}
-.sbtn.wa{color:#128C4A}.sbtn.fb{color:#1A5DCB}
-.pad-x{padding:0 16px 10px}
+/* share buttons: logos only */
+.share{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.sh{width:34px;height:34px;border-radius:50%;display:inline-grid;place-items:center;border:0;cursor:pointer;color:#fff;text-decoration:none;padding:0;flex:none}
+.sh i{width:17px;height:17px;display:block;background:#fff;-webkit-mask:var(--icon) center/contain no-repeat;mask:var(--icon) center/contain no-repeat}
+.sh svg{width:18px;height:18px}
+.sh:hover{filter:brightness(1.1)} .sh:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+.sh-whatsapp{background:#25D366} .sh-facebook{background:#1877F2} .sh-x{background:#000} .sh-telegram{background:#26A5E4}
+.sh-mail,.sh-copy{background:var(--line);color:var(--ink)}
+.sh-copy.done{background:var(--good);color:#fff}
+.sh-done{color:var(--good)}

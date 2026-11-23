@@ -66,6 +66,7 @@ async function step(name, fn) { await fn(); passed++; console.log('  ✓', name)
       const id = /\/community\/posts\/(\d+)"/.exec(feed.text)[1];
       const one = await anon.get('/community/posts/' + id); assert.equal(one.status, 200); assert.match(one.text, /og:description/);
       assert.equal((await anon.get('/static/share.js')).status, 200);
+      assert.match(p.text, /class="sh sh-whatsapp"[^>]*aria-label="[^"]+"[^>]*><i /); assert.doesNotMatch(p.text, />WhatsApp<\/a>/);
     });
     await step('Tamil switch changes the whole page', async () => {
       const r = await anon.get('/lang/ta?back=/projects'); assert.equal(r.status, 303); assert.equal(r.location, '/projects');

@@ -550,7 +550,7 @@ function createApp(db) {
     res.setHeader('X-Content-Type-Options', 'nosniff');
     res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
     res.setHeader('X-Frame-Options', 'DENY');
-    res.setHeader('Content-Security-Policy', "default-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; form-action 'self'; frame-ancestors 'none'; base-uri 'none'");
+    res.setHeader('Content-Security-Policy', "default-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: https://cdn.jsdelivr.net; form-action 'self'; frame-ancestors 'none'; base-uri 'none'");
     try {
       if (url.pathname.startsWith('/static/') && req.method === 'GET') { if (serveStatic(ctx)) return; throw new HttpError(404); }
       ctx.csrf = cookies.csrf && /^[a-f0-9]{48}$/.test(cookies.csrf) ? cookies.csrf : token();
