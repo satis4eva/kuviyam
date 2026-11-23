@@ -1,5 +1,14 @@
 'use strict';
 const { h, raw } = require('../util');
+const fs = require('node:fs');
+const path = require('node:path');
+const crypto = require('node:crypto');
+
+/* A short fingerprint of each static file, added to its link, so browsers fetch the new version after every deploy. */
+const stamp = {};
+for (const f of ['styles.css', 'share.js']) {
+  try { stamp[f] = crypto.createHash('sha1').update(fs.readFileSync(path.join(__dirname, '..', '..', 'public', f))).digest('hex').slice(0, 10); } catch { stamp[f] = String(Date.now()); }
+}
 
 /** Layout shared by every page. */
 function layout(ctx, { title, body, active = '', og }) {
@@ -21,7 +30,7 @@ function layout(ctx, { title, body, active = '', og }) {
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=Figtree:wght@400;500;600;700&family=Noto+Sans+Tamil:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="/static/styles.css">
+<link rel="stylesheet" href="/static/styles.css?v=${stamp['styles.css']}">
 <link rel="icon" href="/static/logo.svg" type="image/svg+xml">
 <meta property="og:site_name" content="${t('brand')}">
 <meta property="og:type" content="website">
@@ -30,7 +39,7 @@ function layout(ctx, { title, body, active = '', og }) {
 <meta property="og:url" content="${absUrl(ctx, og && og.path ? og.path : ctx.url.pathname)}">
 ${og && og.image ? h`<meta property="og:image" content="${absUrl(ctx, og.image)}">` : ''}
 <meta name="twitter:card" content="summary_large_image">
-<script src="/static/share.js" defer></script>
+<script src="/static/share.js?v=${stamp['share.js']}" defer></script>
 </head>
 <body>
 ${process.env.DEMO_MODE === '1' ? h`<div class="demo">${t('demoBanner')}</div>` : ''}
