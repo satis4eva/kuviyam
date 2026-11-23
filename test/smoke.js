@@ -49,6 +49,16 @@ async function step(name, fn) { await fn(); passed++; console.log('  ✓', name)
       }
       assert.match((await anon.get('/projects?q=coconut')).text, /Coconut seedlings/);
     });
+    await step('search and filters find partners and projects', async () => {
+      const j = await anon.get('/partners?q=jaffna'); assert.match(j.text, /Jaffna Mobile Libraries/); assert.doesNotMatch(j.text, /Uva Hill Schools Fund/); assert.match(j.text, /Showing 1 of 5/);
+      const ty = await anon.get('/partners?type=Community+group'); assert.match(ty.text, /Trinco Coconut/); assert.doesNotMatch(ty.text, /Vanni Learning Trust/);
+      const c = await anon.get('/partners?cause=Clean+water&country=Sri+Lanka'); assert.match(c.text, /Uva Hill/); assert.doesNotMatch(c.text, /Batticaloa Women/);
+      const ta = await anon.get('/partners?q=' + encodeURIComponent('யாழ்')); assert.match(ta.text, /Jaffna Mobile Libraries/);
+      const taPlace = await anon.get('/projects?q=' + encodeURIComponent('கிளிநொச்சி')); assert.match(taPlace.text, /Scholarships for 40/);
+      const pq = await anon.get('/projects?q=batticaloa'); assert.match(pq.text, /Partners matching your search/); assert.match(pq.text, /Sewing machines/);
+      const pf = await anon.get('/projects?cause=Clean+water'); assert.match(pf.text, /Haputale/); assert.doesNotMatch(pf.text, /Sewing machines/);
+      assert.match((await anon.get('/partners?q=zzzz')).text, /Nothing matches/);
+    });
     await step('Tamil switch changes the whole page', async () => {
       const r = await anon.get('/lang/ta?back=/projects'); assert.equal(r.status, 303); assert.equal(r.location, '/projects');
       const p = await anon.get('/projects'); assert.match(p.text, /lang="ta"/); assert.match(p.text, /திட்டங்களும் தேவைகளும்/); assert.match(p.text, /புலமைப்பரிசில்/);

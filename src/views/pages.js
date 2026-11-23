@@ -31,14 +31,15 @@ function home(ctx, d) {
 
 /* ---------------- projects ---------------- */
 function projects(ctx, d) {
-  const { t, lang } = ctx; const f = d.filters;
-  return h`<section><div class="sec-h"><div><h1>${t('projectsH')}</h1><p class="muted">${t('nOpen', { n: d.list.length })}</p></div>
-    <form class="filters" method="get" action="/projects">
-      <label class="sr" for="fq">${t('searchLbl')}</label><input id="fq" name="q" value="${f.q}" placeholder="${t('search')}">
+  const { t, lang } = ctx; const f = d.filters; const active = f.q || f.cause || f.district;
+  return h`<section><div class="sec-h"><div><h1>${f.q ? t('resultsFor', { q: f.q }) : t('projectsH')}</h1><p class="muted">${t('nOpen', { n: d.list.length })}</p></div></div>
+    <form class="filters mb" method="get" action="/projects" role="search">
+      <label class="sr" for="fq">${t('searchLbl')}</label><input id="fq" name="q" value="${f.q}" placeholder="${t('searchPh')}">
       <label class="sr" for="fc">${t('cause')}</label><select id="fc" name="cause">${options(CAUSES, f.cause, lang, t('allCauses'))}</select>
       <label class="sr" for="fd">${t('district')}</label><select id="fd" name="district">${options(d.districts, f.district, lang, t('allDistricts'))}</select>
-      <button class="btn sm">${t('filter')}</button>
-    </form></div>
+      <button class="btn sm pri">${t('search')}</button>${active ? h`<a class="btn sm ghost" href="/projects">${t('clearFilters')}</a>` : ''}
+    </form>
+    ${d.partnerHits.length ? h`<div class="card pad stack mb"><h3>${t('partnersMatching')}</h3><div class="row">${d.partnerHits.map((o) => h`<a class="chip plain" href="/partners/${o.slug}">${L(o, 'name', lang)} · ${dt(o.place, lang)}</a>`)}</div></div>` : ''}
     <div class="grid g3">${d.list.length ? d.list.map((p) => projectCard(ctx, p)) : h`<div class="empty">${t('noMatch')}</div>`}</div></section>`;
 }
 
@@ -67,8 +68,17 @@ function project(ctx, d) {
 
 /* ---------------- partners ---------------- */
 function partners(ctx, d) {
-  const { t, lang } = ctx;
+  const { t, lang } = ctx; const f = d.filters; const active = f.q || f.type || f.cause || f.country;
   return h`<section><div class="sec-h"><div><h1>${t('partnersH')}</h1><p class="muted measure">${t('partnersP')}</p></div><a class="btn give sm" href="/join">${t('nav_join')}</a></div>
+    <form class="filters mb" method="get" action="/partners" role="search">
+      <label class="sr" for="pq">${t('searchPartners')}</label><input id="pq" name="q" value="${f.q}" placeholder="${t('searchPartnersPh')}">
+      <label class="sr" for="pt">${t('thType')}</label><select id="pt" name="type">${options(d.opts.types, f.type, lang, t('allTypes'))}</select>
+      <label class="sr" for="pc">${t('cause')}</label><select id="pc" name="cause">${options(d.opts.causes, f.cause, lang, t('allCauses'))}</select>
+      <label class="sr" for="pn">${t('country')}</label><select id="pn" name="country">${options(d.opts.countries, f.country, lang, t('allCountries'))}</select>
+      <button class="btn sm pri">${t('search')}</button>${active ? h`<a class="btn sm ghost" href="/partners">${t('clearFilters')}</a>` : ''}
+    </form>
+    <p class="small muted mb">${t('nShowing', { n: d.list.length, total: d.total })}</p>
+    ${d.list.length ? '' : h`<div class="empty card">${t('noMatch')}</div>`}
     <div class="grid g2">${d.list.map((o) => h`<a class="card pad stack plain" href="/partners/${o.slug}">
       <div class="row nowrap">${avatar(o)}<div><h3>${L(o, 'name', lang)}</h3><div class="small muted">${dt(o.place, lang)}, ${dt(o.country, lang)} · ${t('since', { y: o.since || '' })}</div></div></div>
       <p class="small">${L(o, 'about', lang)}</p>

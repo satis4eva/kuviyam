@@ -3,7 +3,8 @@ const fs = require('node:fs');
 const path = require('node:path');
 const crypto = require('node:crypto');
 const { Raw, toPence, nowIso, requiredReportMonth, token, ref, slugify, isEmail, clean, lines, esc } = require('./util');
-const { makeT, CAUSES, TYPES, CATEGORIES, DISTRICTS, COUNTRIES } = require('./i18n');
+const { makeT, dt, CAUSES, TYPES, CATEGORIES, DISTRICTS, COUNTRIES } = require('./i18n');
+const dtTa = (s) => dt(s, 'ta'); // lets Tamil searches match English-stored places and causes
 const auth = require('./auth');
 const { parseMultipart, checkFile } = require('./multipart');
 const { provider } = require('./payments');
@@ -87,8 +88,13 @@ function createApp(db) {
     const districts = [...new Set(list.map((p) => p.district))].sort();
     if (f.cause) list = list.filter((p) => p.cause === f.cause);
     if (f.district) list = list.filter((p) => p.district === f.district);
-    if (f.q) { const q = f.q.toLowerCase(); list = list.filter((p) => [p.title, p.title_ta, p.district, p.cause, p.org_name, p.org_name_ta, p.needs, p.needs_ta].join(' ').toLowerCase().includes(q)); }
-    page(ctx, { title: ctx.t('projectsH'), body: P.projects(ctx, { list, filters: f, districts }), active: 'projects' });
+    let partnerHits = [];
+    if (f.q) {
+      const q = f.q.toLowerCase();
+      list = list.filter((p) => [p.title, p.title_ta, p.district, dtTa(p.district), p.cause, dtTa(p.cause), p.org_name, p.org_name_ta, p.needs, p.needs_ta].join(' ').toLowerCase().includes(q));
+      partnerHits = allPartners().filter((o) => matchPartner(o, q)).slice(0, 6);
+    }
+    page(ctx, { title: ctx.t('projectsH'), body: P.projects(ctx, { list, filters: f, districts, partnerHits }), active: 'projects' });
   });
 
   route('GET', '/projects/:id', (ctx) => {
@@ -100,10 +106,19 @@ function createApp(db) {
     page(ctx, { title: p.title, body: P.project(ctx, { project: p, org: o, docs }), active: 'projects' });
   });
 
+  const allPartners = () => db.prepare(`SELECT o.*, (SELECT COUNT(*) FROM projects p WHERE p.org_id = o.id AND p.status = 'live') AS projects FROM orgs o WHERE o.status = 'verified' ORDER BY o.name`).all();
+  const matchPartner = (o, q) => [o.name, o.name_ta, o.place, dtTa(o.place), o.country, dtTa(o.country), o.cause, dtTa(o.cause), o.type, dtTa(o.type), o.about, o.about_ta].join(' ').toLowerCase().includes(q);
   route('GET', '/partners', (ctx) => {
-    const list = db.prepare(`SELECT o.*, (SELECT COUNT(*) FROM projects p WHERE p.org_id = o.id AND p.status = 'live') AS projects FROM orgs o WHERE o.status = 'verified' ORDER BY o.name`).all()
-      .map((o) => ({ ...o, late: isLate(o.id) }));
-    page(ctx, { title: ctx.t('partnersH'), body: P.partners(ctx, { list }), active: 'partners' });
+    const qs = ctx.query;
+    const f = { q: clean(qs.get('q'), 80), type: TYPES.includes(qs.get('type')) ? qs.get('type') : '', cause: CAUSES.includes(qs.get('cause')) ? qs.get('cause') : '', country: COUNTRIES.includes(qs.get('country')) ? qs.get('country') : '' };
+    const all = allPartners();
+    let list = all;
+    if (f.type) list = list.filter((o) => o.type === f.type);
+    if (f.cause) list = list.filter((o) => o.cause === f.cause);
+    if (f.country) list = list.filter((o) => o.country === f.country);
+    if (f.q) { const q = f.q.toLowerCase(); list = list.filter((o) => matchPartner(o, q)); }
+    const opts = { types: TYPES.filter((x) => all.some((o) => o.type === x)), causes: CAUSES.filter((x) => all.some((o) => o.cause === x)), countries: COUNTRIES.filter((x) => all.some((o) => o.country === x)) };
+    page(ctx, { title: ctx.t('partnersH'), body: P.partners(ctx, { list: list.map((o) => ({ ...o, late: isLate(o.id) })), filters: f, opts, total: all.length }), active: 'partners' });
   });
 
   route('GET', '/partners/:slug', (ctx) => {
