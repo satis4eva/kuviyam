@@ -10,6 +10,15 @@ for (const f of ['styles.css', 'share.js']) {
   try { stamp[f] = crypto.createHash('sha1').update(fs.readFileSync(path.join(__dirname, '..', '..', 'public', f))).digest('hex').slice(0, 10); } catch { stamp[f] = String(Date.now()); }
 }
 
+/** Classes on <html>: bigger text, and light or dark (the visitor's own choice wins over the site default). */
+function htmlClass(ctx) {
+  const c = [];
+  if (ctx.big) c.push('big');
+  if (ctx.mode === 'dark') c.push('force-dark');
+  else if (ctx.mode !== 'light' && ctx.autoDark) c.push('auto-dark');
+  return c.length ? raw(` class="${c.join(' ')}"`) : '';
+}
+
 /** Layout shared by every page. */
 function layout(ctx, { title, body, active = '', og }) {
   const { absUrl, memberAvatar } = require('./parts');
@@ -21,11 +30,11 @@ function layout(ctx, { title, body, active = '', og }) {
   if (user && user.role === 'admin') nav.push(['/admin', 'nav_admin', 'admin']);
   const back = encodeURIComponent(ctx.url.pathname + ctx.url.search);
   return h`<!DOCTYPE html>
-<html lang="${lang}"${raw([ctx.big ? 'big' : '', ctx.autoDark ? 'auto-dark' : ''].filter(Boolean).length ? ` class="${[ctx.big ? 'big' : '', ctx.autoDark ? 'auto-dark' : ''].filter(Boolean).join(' ')}"` : '')}>
+<html lang="${lang}"${htmlClass(ctx)}>
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="color-scheme" content="${ctx.autoDark ? 'light dark' : 'light'}">
+<meta name="color-scheme" content="${ctx.mode === 'dark' ? 'dark' : ctx.mode === 'light' || !ctx.autoDark ? 'light' : 'light dark'}">
 <title>${title ? title + ' · ' : ''}${t('brand')}</title>
 <meta name="description" content="${t('metaDescription')}">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -49,6 +58,7 @@ ${process.env.DEMO_MODE === '1' ? h`<div class="demo">${t('demoBanner')}</div>` 
   <a class="logo" href="/"><img src="/static/logo.svg" alt="" width="32" height="32"><span><b>${t('brand')}</b><small>${t('tagline')}</small></span></a>
   <nav class="nav" aria-label="Main">${nav.map(([href, key, id]) => h`<a href="${href}" class="${active === id ? 'on' : ''}${id === 'dashboard' || id === 'admin' ? ' keep' : ''}">${t(key)}</a>`)}</nav>
   <div class="tools">
+    <a class="mode to-dark" href="/mode?set=dark&amp;back=${raw(back)}" aria-label="${t('toDark')}" title="${t('toDark')}">🌙</a><a class="mode to-light" href="/mode?set=light&amp;back=${raw(back)}" aria-label="${t('toLight')}" title="${t('toLight')}">☀️</a>
     <a class="tsize" href="/textsize?big=${ctx.big ? '0' : '1'}&amp;back=${raw(back)}" aria-label="${t(ctx.big ? 'textSmaller' : 'textBigger')}" title="${t(ctx.big ? 'textSmaller' : 'textBigger')}" aria-pressed="${ctx.big ? 'true' : 'false'}">A<span>A</span></a>
     <div class="lang" role="group" aria-label="Language / மொழி">
       <a href="/lang/en?back=${raw(back)}" class="${lang === 'en' ? 'on' : ''}" hreflang="en">English</a><a href="/lang/ta?back=${raw(back)}" class="${lang === 'ta' ? 'on' : ''}" hreflang="ta">தமிழ்</a>

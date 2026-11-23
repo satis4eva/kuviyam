@@ -158,8 +158,9 @@ const T = {
   livedInEn: ['Lived in (English)', 'வாழ்ந்த இடம் (ஆங்கிலம்)'], livedInTa: ['Lived in (Tamil)', 'வாழ்ந்த இடம் (தமிழ்)'], livedInPh: ['e.g. Toronto, London', 'எ.கா. ரொறன்ரோ, லண்டன்'],
   mainPhoto: ['Main photo', 'பிரதான புகைப்படம்'], morePhotos: ['More photos (up to 6)', 'மேலும் புகைப்படங்கள் (6 வரை)'], qNotice: ['Notice', 'அறிவித்தல்'],
   /* theme */
+  toDark: ['Dark mode', 'இருண்ட பயன்முறை'], toLight: ['Light mode', 'வெளிர் பயன்முறை'],
   lightH: ['Always use the light look', 'எப்போதும் வெளிர் தோற்றம்'],
-  lightOnP: ['Everyone sees the light background and your colours, even if their phone or computer is in dark mode.', 'தொலைபேசி அல்லது கணினி இருண்ட பயன்முறையில் இருந்தாலும் அனைவரும் வெளிர் பின்னணியையும் உங்கள் வண்ணங்களையும் காண்பர்.'],
+  lightOnP: ['Everyone sees the light background and your colours, even if their phone or computer is in dark mode. Visitors can still switch to dark with the 🌙 button.', 'தொலைபேசி அல்லது கணினி இருண்ட பயன்முறையில் இருந்தாலும் அனைவரும் வெளிர் பின்னணியையும் உங்கள் வண்ணங்களையும் காண்பர்.'],
   lightOffP: ['Phones and computers in dark mode get a dark page; buttons and links still use your colours.', 'இருண்ட பயன்முறையிலுள்ள சாதனங்களுக்கு இருண்ட பக்கம்; பொத்தான்களும் இணைப்புகளும் உங்கள் வண்ணங்களையே பயன்படுத்தும்.'],
   lightIsOn: ['On', 'இயக்கத்தில்'],
   lightIsOff: ['Off: follows dark mode', 'அணைக்கப்பட்டது: இருண்ட பயன்முறையைப் பின்பற்றும்'],

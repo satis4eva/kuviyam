@@ -364,6 +364,9 @@ async function step(name, fn) { await fn(); passed++; console.log('  ✓', name)
       assert.match((await anon.get('/')).text, /<html lang="en" class="auto-dark">/);
       await admin.post('/admin/theme', { light: '1' });
       assert.doesNotMatch((await anon.get("/")).text, /<html[^>]*auto-dark/);
+      const viewer = new Client(); await viewer.get('/');
+      await viewer.get('/mode?set=dark&back=/'); assert.match((await viewer.get('/')).text, /<html lang="en" class="force-dark">/);
+      await viewer.get('/mode?set=light&back=/'); assert.doesNotMatch((await viewer.get('/')).text, /<html[^>]*dark/);
       await admin.post('/admin/theme', { reset: '1' });
       assert.doesNotMatch((await anon.get('/')).text, /--brand:#/);
     });

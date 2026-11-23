@@ -8,11 +8,16 @@
   --r:12px; --shadow:0 1px 2px rgba(19,35,43,.06),0 4px 16px rgba(19,35,43,.05);
   color-scheme:light;
 }
-/* Dark colours only when an admin lets the site follow the device (html.auto-dark); otherwise always light. */
+/* Dark colours: when a visitor picks dark (html.force-dark), or when an admin lets the site follow the device
+   (html.auto-dark) and the device is in dark mode. Otherwise the light look. */
 @media (prefers-color-scheme:dark){:root.auto-dark{
   --bg:#0E1618; --surface:#162226; --ink:#E5EEEB; --muted:#98AAAD; --line:#25363A;
   --brand:#39BBA2; --brand-soft:#173731; --accent:#F0B03A; --accent-ink:#241500;
   --good:#4CC27F; --warn:#E5A23B; --bad:#EE6B5B; --shadow:0 1px 2px rgba(0,0,0,.3); color-scheme:dark;}}
+:root.force-dark{
+  --bg:#0E1618; --surface:#162226; --ink:#E5EEEB; --muted:#98AAAD; --line:#25363A;
+  --brand:#39BBA2; --brand-soft:#173731; --accent:#F0B03A; --accent-ink:#241500;
+  --good:#4CC27F; --warn:#E5A23B; --bad:#EE6B5B; --shadow:0 1px 2px rgba(0,0,0,.3); color-scheme:dark;}
 *{box-sizing:border-box}
 html,body{margin:0}
 body{background:var(--bg);color:var(--ink);font:16px/1.55 var(--body)}
@@ -328,6 +333,15 @@ details.more>.card{position:absolute;right:0;top:110%;z-index:5;width:240px}
   .auto-dark .hb-feed{background:linear-gradient(160deg,#172A3A,var(--surface));border-color:var(--line)}
   .auto-dark .hb-faces .avatar{border-color:#172A3A}
 }
+.force-dark .hbox{--t:color-mix(in srgb,var(--c) 22%,var(--surface))}
+.force-dark .welcome{background:linear-gradient(120deg,#173731,#172A3A 55%,#33270F)}
+.force-dark .hb-feed{background:linear-gradient(160deg,#172A3A,var(--surface));border-color:var(--line)}
+.force-dark .hb-faces .avatar{border-color:#172A3A}
+/* light / dark switch: shows the moon on light pages and the sun on dark ones */
+.mode{display:inline-grid;place-items:center;width:34px;height:34px;border:1px solid var(--line);border-radius:9px;text-decoration:none;font-size:17px;background:var(--surface)}
+.mode.to-light{display:none}
+html.force-dark .mode.to-dark{display:none}html.force-dark .mode.to-light{display:inline-grid}
+@media (prefers-color-scheme:dark){html.auto-dark .mode.to-dark{display:none}html.auto-dark .mode.to-light{display:inline-grid}}
 @media (max-width:1020px){.hgrid{grid-template-columns:repeat(3,minmax(0,1fr))}.hb-feed{grid-row:auto}}
 @media (max-width:860px){.welcome{grid-template-columns:minmax(0,1fr)}}
 @media (max-width:720px){

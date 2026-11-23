@@ -52,10 +52,12 @@ function registerTheme(route, H) {
     // Light look first (works on every browser), then dark mode keeps its dark page but takes the chosen
     // main and Give colours, lightened so they still read on a dark background.
     const darkBrand = luminance(t.brand) < 0.25 ? mix(t.brand, '#FFFFFF', 0.55) : t.brand;
+    const dark = (root, scope) => `${root}{--bg:#0E1618;--line:#25363A;--brand:${darkBrand};--brand-soft:${mix(t.brand, '#162226', 0.3)};--accent:${t.accent};--accent-ink:${inkOn(t.accent)}}`
+      + `${scope} .btn.pri,${scope} .lang a.on,${scope} .seg a.on,${scope} .tsize[aria-pressed="true"]{color:${inkOn(darkBrand)}}`;
     return `:root{--bg:${t.bg};--line:${line};--brand:${t.brand};--brand-soft:${mix(t.brand, '#FFFFFF', 0.12)};--accent:${t.accent};--accent-ink:${inkOn(t.accent)}}`
       + `.btn.pri,.lang a.on,.seg a.on,.tsize[aria-pressed="true"]{color:${inkOn(t.brand)}}`
-      + `@media (prefers-color-scheme:dark){:root.auto-dark{--bg:#0E1618;--line:#25363A;--brand:${darkBrand};--brand-soft:${mix(t.brand, '#162226', 0.3)};--accent:${t.accent};--accent-ink:${inkOn(t.accent)}}`
-      + `.auto-dark .btn.pri,.auto-dark .lang a.on,.auto-dark .seg a.on,.auto-dark .tsize[aria-pressed="true"]{color:${inkOn(darkBrand)}}}`;
+      + `@media (prefers-color-scheme:dark){${dark(':root.auto-dark', '.auto-dark')}}`
+      + dark(':root.force-dark', '.force-dark');
   };
 
   route('GET', '/admin/theme', (ctx) => {

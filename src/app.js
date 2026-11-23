@@ -79,6 +79,12 @@ function createApp(db) {
     ctx.cookies.push(auth.cookie('big', big ? '1' : '', { maxAge: big ? 365 * 86400 : 0, secure: secure(ctx.req), httpOnly: false }));
     redirect(ctx, safeNext(ctx.query.get('back')));
   });
+  // Each visitor can pick light or dark for themselves; 'auto' goes back to the site's default.
+  route('GET', '/mode', (ctx) => {
+    const m = ['light', 'dark'].includes(ctx.query.get('set')) ? ctx.query.get('set') : '';
+    ctx.cookies.push(auth.cookie('mode', m, { maxAge: m ? 365 * 86400 : 0, secure: secure(ctx.req), httpOnly: false }));
+    redirect(ctx, safeNext(ctx.query.get('back')));
+  });
   route('GET', '/healthz', (ctx) => { ctx.res.writeHead(200, { 'Content-Type': 'text/plain' }); ctx.res.end('ok'); });
   route('GET', '/robots.txt', (ctx) => { ctx.res.writeHead(200, { 'Content-Type': 'text/plain' }); ctx.res.end(process.env.DEMO_MODE === '1' ? 'User-agent: *\nDisallow: /\n' : 'User-agent: *\nDisallow: /admin\nDisallow: /dashboard\nDisallow: /files\n'); });
 
@@ -629,6 +635,7 @@ function createApp(db) {
       ctx.big = cookies.big === '1';
       ctx.themeCss = H.themeCss ? H.themeCss() : '';
       ctx.autoDark = H.theme ? !H.theme().light : false;
+      ctx.mode = cookies.mode === 'dark' || cookies.mode === 'light' ? cookies.mode : '';
       if (req.method === 'POST') {
         const type = req.headers['content-type'] || '';
         if (type.startsWith('multipart/form-data')) { const parsed = parseMultipart(await readBody(req, MAX_UPLOAD), type); ctx.body = parsed.fields; ctx.files = parsed.files; }
