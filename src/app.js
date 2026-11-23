@@ -107,7 +107,8 @@ function createApp(db) {
     if (!p || !o || o.status !== 'verified') throw new HttpError(404);
     const docs = db.prepare(`SELECT f.id, f.filename FROM expenses e JOIN reports r ON r.id = e.report_id JOIN files f ON f.id = e.file_id
       WHERE r.org_id = ? AND r.status = 'published' AND e.district = ? ORDER BY r.month DESC, e.id DESC LIMIT 6`).all(o.id, p.district);
-    page(ctx, { title: p.title, body: P.project(ctx, { project: p, org: o, docs }), active: 'projects' });
+    const ptitle = (ctx.lang === 'ta' && p.title_ta) || p.title;
+    page(ctx, { title: ptitle, body: P.project(ctx, { project: p, org: o, docs }), active: 'projects', og: { title: ptitle, description: `${(ctx.lang === 'ta' && o.name_ta) || o.name} · ${ctx.t('ofGoal', { r: '£' + Math.round(p.raised_pence / 100).toLocaleString('en-GB'), g: '£' + Math.round(p.goal_pence / 100).toLocaleString('en-GB') })}`, path: `/projects/${p.id}` } });
   });
 
   const allPartners = () => db.prepare(`SELECT o.*, (SELECT COUNT(*) FROM projects p WHERE p.org_id = o.id AND p.status = 'live') AS projects FROM orgs o WHERE o.status = 'verified' ORDER BY o.name`).all();
@@ -130,7 +131,7 @@ function createApp(db) {
     if (!o) throw new HttpError(404);
     const projects = db.prepare(`${PROJECT_SQL} WHERE p.org_id = ? AND p.status = 'live' ORDER BY p.created_at DESC`).all(o.id);
     const students = db.prepare(`SELECT * FROM students WHERE org_id = ? ORDER BY sponsored, id`).all(o.id);
-    page(ctx, { title: o.name, body: P.partner(ctx, { org: o, projects, students }), active: 'partners' });
+    page(ctx, { title: o.name, body: P.partner(ctx, { org: o, projects, students }), active: 'partners', og: { title: (ctx.lang === 'ta' && o.name_ta) || o.name, description: String((ctx.lang === 'ta' && o.about_ta) || o.about || '').slice(0, 200), path: `/partners/${o.slug}` } });
   });
 
   route('GET', '/sponsor', (ctx) => {

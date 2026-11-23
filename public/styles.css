@@ -166,3 +166,9 @@ td.r,th.r,.r{text-align:right}
 .condol{border-left:3px solid var(--line);padding-left:12px}
 .clamp{display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
 .narrow.wide2{max-width:760px}
+/* share buttons */
+.share{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.sbtn{font:inherit;font-size:13px;font-weight:600;padding:4px 10px;border-radius:999px;border:1px solid var(--line);background:var(--surface);color:var(--ink);text-decoration:none;cursor:pointer}
+.sbtn:hover{border-color:var(--brand)}
+.sbtn.wa{color:#128C4A}.sbtn.fb{color:#1A5DCB}
+.pad-x{padding:0 16px 10px}

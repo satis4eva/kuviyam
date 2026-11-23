@@ -2,7 +2,8 @@
 const { h, raw } = require('../util');
 
 /** Layout shared by every page. */
-function layout(ctx, { title, body, active = '' }) {
+function layout(ctx, { title, body, active = '', og }) {
+  const { absUrl } = require('./parts');
   const { t, lang, user, csrf, flash } = ctx;
   const isPartner = user && user.orgs.some((o) => o.status === 'verified');
   const nav = [['/', 'nav_home', 'home'], ['/projects', 'nav_projects', 'projects'], ['/partners', 'nav_partners', 'partners'], ['/sponsor', 'nav_sponsor', 'sponsor'], ['/community', 'nav_community', 'community'], ['/transparency', 'nav_transparency', 'transparency']];
@@ -22,6 +23,14 @@ function layout(ctx, { title, body, active = '' }) {
 <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=Figtree:wght@400;500;600;700&family=Noto+Sans+Tamil:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="/static/styles.css">
 <link rel="icon" href="/static/logo.svg" type="image/svg+xml">
+<meta property="og:site_name" content="${t('brand')}">
+<meta property="og:type" content="website">
+<meta property="og:title" content="${og ? og.title : (title || t('brand'))}">
+<meta property="og:description" content="${og && og.description ? og.description : t('metaDescription')}">
+<meta property="og:url" content="${absUrl(ctx, og && og.path ? og.path : ctx.url.pathname)}">
+${og && og.image ? h`<meta property="og:image" content="${absUrl(ctx, og.image)}">` : ''}
+<meta name="twitter:card" content="summary_large_image">
+<script src="/static/share.js" defer></script>
 </head>
 <body>
 ${process.env.DEMO_MODE === '1' ? h`<div class="demo">${t('demoBanner')}</div>` : ''}

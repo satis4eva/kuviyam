@@ -102,6 +102,7 @@ const T = {
   errMonth: ['Choose a month that has already started.', 'ஏற்கனவே தொடங்கிய ஒரு மாதத்தைத் தெரிவுசெய்யுங்கள்.'], errReceived: ['Enter the funds received that month (0 if none).', 'அம்மாதம் பெற்ற நிதியை உள்ளிடுங்கள் (இல்லையெனில் 0).'], errReportExists: ['A report for that month already exists.', 'அம்மாதத்துக்கான அறிக்கை ஏற்கனவே உள்ளது.'],
   errAmountLkr: ['Enter the amount in rupees.', 'தொகையை ரூபாயில் உள்ளிடுங்கள்.'], errFirstName: ['Use the first name only.', 'முதற்பெயரை மட்டும் பயன்படுத்துங்கள்.'],
   file_missing: ['Upload: {f}', 'பதிவேற்றுக: {f}'], file_too_big: ['{f} is larger than 5 MB.', '{f} 5 MB ஐ விடப் பெரியது.'], file_bad_type: ['{f} must be a PDF, JPG, PNG or WebP file.', '{f} PDF, JPG, PNG அல்லது WebP கோப்பாக இருக்க வேண்டும்.'],
+  share: ['Share', 'பகிர்'], shareOn: ['Share on {s}', '{s} இல் பகிர்'], emailShort: ['Email', 'மின்னஞ்சல்'], copyLink: ['Copy link', 'இணைப்பை நகலெடு'], linkCopied: ['Link copied', 'இணைப்பு நகலெடுக்கப்பட்டது'], backToFeed: ['Back to the feed', 'பதிவுகளுக்குத் திரும்பு'],
   /* ---- community hub ---- */
   nav_community: ['Community', 'சமூகம்'], communityH: ['Community', 'சமூகம்'], communityP: ['Photos, videos and news from partners in the field. Every post links back to the project it shows.', 'களத்திலுள்ள பங்காளர்களின் புகைப்படங்கள், காணொளிகள், செய்திகள். ஒவ்வொரு பதிவும் அது காட்டும் திட்டத்துடன் இணைக்கப்பட்டுள்ளது.'],
   tFeed: ['Feed', 'பதிவுகள்'], tEvents: ['Events', 'நிகழ்வுகள்'], tMemorials: ['Obituaries and memorials', 'மரண அறிவித்தல்கள், நினைவஞ்சலி'], tPosts: ['Posts', 'பதிவுகள்'],

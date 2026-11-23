@@ -1,7 +1,7 @@
 'use strict';
 const { h, raw, gbp, lkr, monthLabel, dateLabel, RATE_LKR_PER_GBP } = require('../util');
 const { dt, CAUSES, TYPES, DISTRICTS, COUNTRIES } = require('../i18n');
-const { L, pct, avatar, verifiedTag, art, projectCard, csrfField, options, errors } = require('./parts');
+const { L, pct, avatar, verifiedTag, art, projectCard, csrfField, options, errors, shareBar } = require('./parts');
 const C = require('./community');
 
 /* ---------------- home ---------------- */
@@ -67,6 +67,7 @@ function project(ctx, d) {
       <div class="row between small muted num"><span>${t('funded', { p: pct(p) })}</span><span>${t('donors', { n: p.donors })}</span>${p.ends_on ? h`<span>${t('ends', { d: dateLabel(p.ends_on, lang) })}</span>` : ''}</div>
       ${p.status === 'live' ? h`<a class="btn give" href="/donate?kind=project&amp;id=${p.id}">${t('donateNow')}</a><a class="btn" href="/donate?kind=project&amp;id=${p.id}&amp;monthly=1">${t('giveMonthly')}</a>` : ''}
       <p class="tiny muted">${t('giftAidNote')}</p>
+      ${shareBar(ctx, `/projects/${p.id}`, L(p, 'title', lang))}
     </aside></div>`;
 }
 
@@ -93,7 +94,7 @@ function partner(ctx, d) {
   const { t, lang } = ctx; const o = d.org;
   return h`<section class="card pad row top">${avatar(o, true)}
     <div class="stack grow"><h1>${L(o, 'name', lang)}</h1><div class="row small muted">${dt(o.type, lang)} · ${dt(o.place, lang)}, ${dt(o.country, lang)} · ${dt(o.cause, lang)} · ${t('since', { y: o.since || '' })} ${verifiedTag(ctx, o)}</div><p>${L(o, 'about', lang)}</p></div>
-    <div class="row"><a class="btn give" href="/donate?kind=org&amp;id=${o.id}">${t('donate')}</a><a class="btn" href="/transparency/${o.slug}">${t('monthlySpend')}</a></div></section>
+    <div class="stack"><div class="row"><a class="btn give" href="/donate?kind=org&amp;id=${o.id}">${t('donate')}</a><a class="btn" href="/transparency/${o.slug}">${t('monthlySpend')}</a></div>${shareBar(ctx, `/partners/${o.slug}`, L(o, 'name', lang))}</div></section>
   <section><h2 class="mb">${t('projects')}</h2><div class="grid g3">${d.projects.length ? d.projects.map((p) => projectCard(ctx, p)) : h`<div class="empty">${t('noProjects')}</div>`}</div></section>
   ${d.students.length ? h`<section><h2 class="mb">${t('sponsorH')}</h2><div class="grid g3">${d.students.map((s) => studentCard(ctx, s, o))}</div></section>` : ''}`;
 }

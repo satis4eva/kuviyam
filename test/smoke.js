@@ -59,6 +59,14 @@ async function step(name, fn) { await fn(); passed++; console.log('  ✓', name)
       const pf = await anon.get('/projects?cause=Clean+water'); assert.match(pf.text, /Haputale/); assert.doesNotMatch(pf.text, /Sewing machines/);
       assert.match((await anon.get('/partners?q=zzzz')).text, /Nothing matches/);
     });
+    await step('share buttons and link previews on projects, partners and posts', async () => {
+      const p = await anon.get('/projects/1'); assert.match(p.text, /https:\/\/wa\.me\/\?text=[^"]*%2Fprojects%2F1/); assert.match(p.text, /facebook\.com\/sharer\/sharer\.php\?u=http%3A%2F%2F127\.0\.0\.1/); assert.match(p.text, /property="og:title" content="Scholarships for 40/);
+      assert.match((await anon.get('/partners/vanni-learning-trust')).text, /data-share="http:\/\/127\.0\.0\.1:\d+\/partners\/vanni-learning-trust"/);
+      const feed = await anon.get('/community'); assert.match(feed.text, /%2Fcommunity%2Fposts%2F\d+/);
+      const id = /\/community\/posts\/(\d+)"/.exec(feed.text)[1];
+      const one = await anon.get('/community/posts/' + id); assert.equal(one.status, 200); assert.match(one.text, /og:description/);
+      assert.equal((await anon.get('/static/share.js')).status, 200);
+    });
     await step('Tamil switch changes the whole page', async () => {
       const r = await anon.get('/lang/ta?back=/projects'); assert.equal(r.status, 303); assert.equal(r.location, '/projects');
       const p = await anon.get('/projects'); assert.match(p.text, /lang="ta"/); assert.match(p.text, /திட்டங்களும் தேவைகளும்/); assert.match(p.text, /புலமைப்பரிசில்/);

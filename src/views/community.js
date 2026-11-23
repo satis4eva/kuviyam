@@ -1,7 +1,7 @@
 'use strict';
 const { h, raw, gbp, dateLabel, MON } = require('../util');
 const { dt } = require('../i18n');
-const { L, avatar, art, csrfField, options, errors } = require('./parts');
+const { L, avatar, art, csrfField, options, errors, shareBar } = require('./parts');
 
 const timeAgo = (ctx, iso) => {
   const mins = Math.max(1, Math.round((Date.now() - Date.parse(iso)) / 60000));
@@ -26,12 +26,13 @@ function postCard(ctx, p, { full = true } = {}) {
   return h`<article class="card post" id="post-${p.id}">
     <div class="post-h">${avatar(org)}<div class="grow0"><a class="plain" href="/partners/${p.org_slug}"><b class="small">${L(p, 'org_name', lang)}</b></a><div class="tiny muted">${timeAgo(ctx, p.created_at)} · ${t(p.kind === 'video' ? 'video' : p.kind === 'photo' ? 'photo' : 'update')}</div></div></div>
     <div class="thumb">${media}</div>
-    <div class="pad stack"><p class="small">${L(p, 'text', lang)}</p>${p.project_id && p.project_status === 'live' ? h`<a class="small" href="/projects/${p.project_id}">🔗 ${lang === 'ta' && p.project_title_ta ? p.project_title_ta : p.project_title}</a>` : ''}</div>
+    <div class="pad stack"><p class="small">${full ? L(p, 'text', lang) : h`<a class="plain" href="/community/posts/${p.id}">${L(p, 'text', lang)}</a>`}</p>${p.project_id && p.project_status === 'live' ? h`<a class="small" href="/projects/${p.project_id}">🔗 ${lang === 'ta' && p.project_title_ta ? p.project_title_ta : p.project_title}</a>` : ''}</div>
     ${full ? h`<div class="post-a">
       ${postBtn(ctx, `/community/posts/${p.id}/like`, h`${p.liked ? '♥' : '♡'} <span class="num">${p.likes}</span>`, 'ghost')}
       ${p.project_id && p.project_status === 'live' ? h`<a class="btn sm give" href="/donate?kind=project&amp;id=${p.project_id}">${t('donate')}</a>` : ''}
       <span class="push"></span>${postBtn(ctx, `/community/posts/${p.id}/report`, t('report'), 'ghost')}
     </div>
+    <div class="pad-x">${shareBar(ctx, `/community/posts/${p.id}`, `${L(p, 'org_name', lang)}: ${String(L(p, 'text', lang)).slice(0, 100)}`)}</div>
     <div class="comments">${p.comments.map((c) => h`<div class="cmt"><b>${c.user_name || t('member')}</b> ${c.body} ${postBtn(ctx, `/community/comments/${c.id}/report`, t('reportShort'), 'link')}</div>`)}
       ${ctx.user ? h`<form method="post" action="/community/posts/${p.id}/comment" class="cform">${csrfField(ctx)}<label class="sr" for="c${p.id}">${t('writeComment')}</label><input id="c${p.id}" name="body" maxlength="500" required placeholder="${t('writeComment')}"><button class="btn sm">${t('post')}</button></form>`
                  : h`<a class="tiny" href="/login?next=/community">${t('loginToComment')}</a>`}
@@ -83,7 +84,8 @@ function memorial(ctx, d) {
     <section class="card pad stack memorial">${m.file_id ? h`<img class="mphoto lg" src="/files/${m.file_id}" alt="${L(m, 'name', lang)}">` : ''}
       <div class="small muted">${t('inMemory')}</div><h1>${L(m, 'name', lang)}</h1><div class="muted">${m.years} · ${L(m, 'town', lang)}</div><p>${L(m, 'tribute', lang)}</p>
       <div class="candles" aria-label="${t('candlesN', { n: m.candles })}">${raw('<i class="flame"></i>'.repeat(Math.min(m.candles, 60)))}${m.candles > 60 ? h`<span class="tiny muted">+${m.candles - 60}</span>` : ''}</div>
-      <div class="row">${d.lit ? h`<span class="chip good">✓ ${t('candleLit')}</span>` : postBtn(ctx, `/memorials/${m.id}/candle`, t('lightCandle'))}</div></section>
+      <div class="row">${d.lit ? h`<span class="chip good">✓ ${t('candleLit')}</span>` : postBtn(ctx, `/memorials/${m.id}/candle`, t('lightCandle'))}</div>
+      ${shareBar(ctx, `/memorials/${m.id}`, `${t('inMemOf', { n: L(m, 'name', lang) })}`)}</section>
     <section class="card pad stack" id="condolences"><h3>${t('condolences')}</h3>
       ${d.condol.length ? d.condol.map((c) => h`<div class="condol"><p>${c.body}</p><div class="tiny muted">${c.name} · ${dateLabel(c.created_at, lang)}</div></div>`) : h`<p class="muted small">${t('beFirst')}</p>`}
       ${ctx.user ? h`<form class="form" method="post" action="/memorials/${m.id}/condolence">${csrfField(ctx)}<label class="f">${t('yourName')}<input name="name" value="${ctx.user.name}" maxlength="120"></label><label class="f">${t('message')}<textarea name="body" required maxlength="1000"></textarea></label><div><button class="btn pri">${t('postMessage')}</button></div></form>`
@@ -149,4 +151,8 @@ function adminMemorial(ctx, d) {
       <form method="post" action="/admin/memorials/${m.id}/reject" class="stack">${csrfField(ctx)}<label class="f">${t('reason')}<textarea name="reason" maxlength="300"></textarea></label><button class="btn">${t('reject')}</button></form></aside>` : h`<aside class="card pad"><span class="chip">${t('st_' + m.status)}</span></aside>`}</section>`;
 }
 
-module.exports = { postCard, eventCard, feed, events, memorials, memorial, memorialForm, dashPosts, dashEvents, adminMemorial, postBtn };
+function postPage(ctx, d) {
+  return h`<section class="narrow wide2 stack"><a class="small" href="/community">← ${ctx.t('backToFeed')}</a>${postCard(ctx, d.post)}</section>`;
+}
+
+module.exports = { postPage, postCard, eventCard, feed, events, memorials, memorial, memorialForm, dashPosts, dashEvents, adminMemorial, postBtn };

@@ -41,6 +41,21 @@ function projectCard(ctx, p) {
   </div></article>`;
 }
 
+/** Absolute link for sharing: PUBLIC_URL if set, else the host the visitor used. */
+function absUrl(ctx, path) {
+  const base = process.env.PUBLIC_URL || `${ctx.req.headers['x-forwarded-proto'] === 'https' ? 'https' : 'http'}://${ctx.req.headers['x-forwarded-host'] || ctx.req.headers.host}`;
+  return base.replace(/\/$/, '') + path;
+}
+/** Share buttons: WhatsApp, Facebook, X, email and copy (or the phone's own share sheet). Plain links, no tracking scripts. */
+function shareBar(ctx, path, text) {
+  const { t } = ctx; const url = absUrl(ctx, path); const u = encodeURIComponent(url); const msg = encodeURIComponent(`${text} ${url}`);
+  return h`<div class="share" aria-label="${t('share')}"><span class="tiny muted">${t('share')}</span>
+    <a class="sbtn wa" href="https://wa.me/?text=${raw(msg)}" target="_blank" rel="noopener" aria-label="${t('shareOn', { s: 'WhatsApp' })}">WhatsApp</a>
+    <a class="sbtn fb" href="https://www.facebook.com/sharer/sharer.php?u=${raw(u)}" target="_blank" rel="noopener" aria-label="${t('shareOn', { s: 'Facebook' })}">Facebook</a>
+    <a class="sbtn x" href="https://twitter.com/intent/tweet?url=${raw(u)}&amp;text=${raw(encodeURIComponent(text))}" target="_blank" rel="noopener" aria-label="${t('shareOn', { s: 'X' })}">X</a>
+    <a class="sbtn" href="mailto:?subject=${raw(encodeURIComponent(text))}&amp;body=${raw(msg)}" aria-label="${t('shareOn', { s: 'email' })}">${t('emailShort')}</a>
+    <button type="button" class="sbtn" data-share="${url}" data-title="${text}" data-done="${t('linkCopied')}">${t('copyLink')}</button></div>`;
+}
 function csrfField(ctx) { return h`<input type="hidden" name="_csrf" value="${ctx.csrf}">`; }
 function options(list, selected, lang, blank) {
   return h`${blank !== undefined ? h`<option value="">${blank}</option>` : ''}${list.map((x) => h`<option value="${x}"${x === selected ? raw(' selected') : ''}>${dt(x, lang)}</option>`)}`;
@@ -50,4 +65,4 @@ function errors(ctx, list) {
   return h`<div class="flash bad" role="alert"><b>${ctx.t('fixThese')}</b><ul>${list.map((e) => h`<li>${e}</li>`)}</ul></div>`;
 }
 
-module.exports = { L, pct, avatar, verifiedTag, art, projectCard, csrfField, options, errors };
+module.exports = { L, pct, avatar, verifiedTag, art, projectCard, csrfField, options, errors, absUrl, shareBar };

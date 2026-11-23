@@ -27,6 +27,13 @@ function registerCommunity(route, H) {
     const posts = loadPosts(ctx, `p.status = 'live' AND o.status = 'verified'`, []);
     page(ctx, { title: ctx.t('communityH'), active: 'community', body: C.feed(ctx, { posts }) });
   });
+  route('GET', '/community/posts/:id', (ctx) => {
+    const post = loadPosts(ctx, `p.id = ? AND p.status = 'live' AND o.status = 'verified'`, [Number(ctx.params.id)], 1)[0];
+    if (!post) throw new HttpError(404);
+    const text = (ctx.lang === 'ta' && post.text_ta) || post.text;
+    page(ctx, { title: (ctx.lang === 'ta' && post.org_name_ta) || post.org_name, active: 'community', body: C.postPage(ctx, { post }),
+      og: { title: (ctx.lang === 'ta' && post.org_name_ta) || post.org_name, description: text.slice(0, 200), path: `/community/posts/${post.id}`, image: post.file_id && post.kind === 'photo' ? `/files/${post.file_id}` : null } });
+  });
   const livePost = (id) => { const p = db.prepare(`SELECT p.* FROM posts p JOIN orgs o ON o.id = p.org_id WHERE p.id = ? AND p.status = 'live' AND o.status = 'verified'`).get(Number(id)); if (!p) throw new HttpError(404); return p; };
   route('POST', '/community/posts/:id/like', (ctx) => {
     if (!requireUser(ctx)) return; const p = livePost(ctx.params.id);
