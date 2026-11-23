@@ -359,6 +359,11 @@ async function step(name, fn) { await fn(); passed++; console.log('  ✓', name)
       assert.match((await anon.get('/')).text, /--brand:#8C2633/); // dark background refused, old colours kept
       await admin.post('/admin/theme', { bg: '#FFFFFF', brand: '#1F5FA0', accent: '#F2A33A' });
       assert.match((await anon.get('/')).text, /--bg:#FFFFFF;[^}]*--brand:#1F5FA0/);
+      assert.doesNotMatch((await anon.get("/")).text, /<html[^>]*auto-dark/); // light look for everyone by default
+      await admin.post('/admin/theme', { light: '0' });
+      assert.match((await anon.get('/')).text, /<html lang="en" class="auto-dark">/);
+      await admin.post('/admin/theme', { light: '1' });
+      assert.doesNotMatch((await anon.get("/")).text, /<html[^>]*auto-dark/);
       await admin.post('/admin/theme', { reset: '1' });
       assert.doesNotMatch((await anon.get('/')).text, /--brand:#/);
     });

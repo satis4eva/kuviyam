@@ -4,12 +4,15 @@
  *   background  the page behind the boxes
  *   main        buttons, links, menus (teal by default)
  *   give        the Give and Donate buttons (saffron by default)
- * In dark mode the page stays dark but buttons and links take the chosen colours.
+ * The site always uses the light look, unless an admin turns on 'follow dark mode'; then
+ * devices in dark mode get a dark page with the chosen main and Give colours.
  */
 const { audit } = require('./db');
 const { clean } = require('./util');
 
 const DEFAULTS = { bg: '#F8FAF9', brand: '#0D6B5B', accent: '#E39A12' };
+// Light look for everyone unless an admin lets the site follow each device's dark mode.
+const DEFAULT_LIGHT = true;
 const PRESETS = [
   { key: 'kuviyam', en: 'Kuviyam teal', ta: 'குவியம் பச்சை', bg: '#F8FAF9', brand: '#0D6B5B', accent: '#E39A12' },
   { key: 'white', en: 'Clean white', ta: 'வெண்மை', bg: '#FFFFFF', brand: '#0D6B5B', accent: '#E39A12' },
@@ -32,8 +35,10 @@ function registerTheme(route, H) {
   const { db, page, redirect, requireAdmin } = H;
   const read = () => {
     const out = { ...DEFAULTS };
-    for (const r of db.prepare(`SELECT key, value FROM settings WHERE key IN ('theme_bg','theme_brand','theme_accent')`).all()) {
-      if (HEX.test(r.value)) out[r.key.slice(6)] = r.value.toUpperCase();
+    out.light = DEFAULT_LIGHT;
+    for (const r of db.prepare(`SELECT key, value FROM settings WHERE key IN ('theme_bg','theme_brand','theme_accent','theme_light')`).all()) {
+      if (r.key === 'theme_light') out.light = r.value === '1';
+      else if (HEX.test(r.value)) out[r.key.slice(6)] = r.value.toUpperCase();
     }
     return out;
   };
@@ -49,8 +54,8 @@ function registerTheme(route, H) {
     const darkBrand = luminance(t.brand) < 0.25 ? mix(t.brand, '#FFFFFF', 0.55) : t.brand;
     return `:root{--bg:${t.bg};--line:${line};--brand:${t.brand};--brand-soft:${mix(t.brand, '#FFFFFF', 0.12)};--accent:${t.accent};--accent-ink:${inkOn(t.accent)}}`
       + `.btn.pri,.lang a.on,.seg a.on,.tsize[aria-pressed="true"]{color:${inkOn(t.brand)}}`
-      + `@media (prefers-color-scheme:dark){:root{--bg:#0E1618;--line:#25363A;--brand:${darkBrand};--brand-soft:${mix(t.brand, '#162226', 0.3)};--accent:${t.accent};--accent-ink:${inkOn(t.accent)}}`
-      + `.btn.pri,.lang a.on,.seg a.on,.tsize[aria-pressed="true"]{color:${inkOn(darkBrand)}}}`;
+      + `@media (prefers-color-scheme:dark){:root.auto-dark{--bg:#0E1618;--line:#25363A;--brand:${darkBrand};--brand-soft:${mix(t.brand, '#162226', 0.3)};--accent:${t.accent};--accent-ink:${inkOn(t.accent)}}`
+      + `.auto-dark .btn.pri,.auto-dark .lang a.on,.auto-dark .seg a.on,.auto-dark .tsize[aria-pressed="true"]{color:${inkOn(darkBrand)}}}`;
   };
 
   route('GET', '/admin/theme', (ctx) => {
@@ -62,6 +67,11 @@ function registerTheme(route, H) {
     if (!requireAdmin(ctx)) return;
     const b = ctx.body;
     let next;
+    if (b.light === '1' || b.light === '0') {
+      db.prepare('INSERT INTO settings (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value').run('theme_light', b.light);
+      audit(db, ctx.user.id, 'theme-light', b.light);
+      return redirect(ctx, '/admin/theme', { kind: 'good', msg: ctx.t(b.light === '1' ? 'lightOnT' : 'lightOffT') });
+    }
     if (b.preset) {
       const p = PRESETS.find((x) => x.key === b.preset); if (!p) return redirect(ctx, '/admin/theme');
       next = { bg: p.bg, brand: p.brand, accent: p.accent };

@@ -21,10 +21,11 @@ function layout(ctx, { title, body, active = '', og }) {
   if (user && user.role === 'admin') nav.push(['/admin', 'nav_admin', 'admin']);
   const back = encodeURIComponent(ctx.url.pathname + ctx.url.search);
   return h`<!DOCTYPE html>
-<html lang="${lang}"${ctx.big ? raw(' class="big"') : ''}>
+<html lang="${lang}"${raw([ctx.big ? 'big' : '', ctx.autoDark ? 'auto-dark' : ''].filter(Boolean).length ? ` class="${[ctx.big ? 'big' : '', ctx.autoDark ? 'auto-dark' : ''].filter(Boolean).join(' ')}"` : '')}>
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="${ctx.autoDark ? 'light dark' : 'light'}">
 <title>${title ? title + ' · ' : ''}${t('brand')}</title>
 <meta name="description" content="${t('metaDescription')}">
 <link rel="preconnect" href="https://fonts.googleapis.com">

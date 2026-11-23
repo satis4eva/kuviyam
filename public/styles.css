@@ -8,7 +8,8 @@
   --r:12px; --shadow:0 1px 2px rgba(19,35,43,.06),0 4px 16px rgba(19,35,43,.05);
   color-scheme:light;
 }
-@media (prefers-color-scheme:dark){:root{
+/* Dark colours only when an admin lets the site follow the device (html.auto-dark); otherwise always light. */
+@media (prefers-color-scheme:dark){:root.auto-dark{
   --bg:#0E1618; --surface:#162226; --ink:#E5EEEB; --muted:#98AAAD; --line:#25363A;
   --brand:#39BBA2; --brand-soft:#173731; --accent:#F0B03A; --accent-ink:#241500;
   --good:#4CC27F; --warn:#E5A23B; --bad:#EE6B5B; --shadow:0 1px 2px rgba(0,0,0,.3); color-scheme:dark;}}
@@ -322,10 +323,10 @@ details.more>.card{position:absolute;right:0;top:110%;z-index:5;width:240px}
 .s-me,.s-join{--c:#C28A12;--t:#FFF3C4}
 .hb-join{border:2px dashed #E3B341}
 @media (prefers-color-scheme:dark){
-  .hbox{--t:color-mix(in srgb,var(--c) 22%,var(--surface))}
-  .welcome{background:linear-gradient(120deg,#173731,#172A3A 55%,#33270F)}
-  .hb-feed{background:linear-gradient(160deg,#172A3A,var(--surface));border-color:var(--line)}
-  .hb-faces .avatar{border-color:#172A3A}
+  .auto-dark .hbox{--t:color-mix(in srgb,var(--c) 22%,var(--surface))}
+  .auto-dark .welcome{background:linear-gradient(120deg,#173731,#172A3A 55%,#33270F)}
+  .auto-dark .hb-feed{background:linear-gradient(160deg,#172A3A,var(--surface));border-color:var(--line)}
+  .auto-dark .hb-faces .avatar{border-color:#172A3A}
 }
 @media (max-width:1020px){.hgrid{grid-template-columns:repeat(3,minmax(0,1fr))}.hb-feed{grid-row:auto}}
 @media (max-width:860px){.welcome{grid-template-columns:minmax(0,1fr)}}

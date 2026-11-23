@@ -173,7 +173,10 @@ function adminTheme(ctx, d) {
           <span class="row"><span class="btn" data-role="accent" style="background:${th.accent};border-color:${th.accent}">${t('giveNow')}</span><span class="btn" data-role="brand" style="background:${th.brand};border-color:${th.brand};color:#fff">${t('joinFree')}</span><a data-role="link" style="color:${th.brand}">${t('allProjects')}</a></span></div>
       </div>
       <form method="post" action="/admin/theme">${csrfField(ctx)}<input type="hidden" name="reset" value="1"><button class="btn sm ghost">${t('themeReset')}</button></form>
-      <p class="tiny muted">${t('themeDarkNote')}</p></div>
+      <div class="card pad stack"><h3>${t('lightH')}</h3>
+        <p class="small muted">${t(th.light ? 'lightOnP' : 'lightOffP')}</p>
+        <form method="post" action="/admin/theme">${csrfField(ctx)}<input type="hidden" name="light" value="${th.light ? '0' : '1'}">
+          <span class="row between"><span class="chip ${th.light ? 'good' : 'plain'}">${t(th.light ? 'lightIsOn' : 'lightIsOff')}</span><button class="btn sm">${t(th.light ? 'lightTurnOff' : 'lightTurnOn')}</button></span></form></div></div>
   </section>
   <script src="/static/theme-admin.js" defer></script>`;
 }

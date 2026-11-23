@@ -628,6 +628,7 @@ function createApp(db) {
       ctx.counts = H.counts ? H.counts(ctx.user) : null;
       ctx.big = cookies.big === '1';
       ctx.themeCss = H.themeCss ? H.themeCss() : '';
+      ctx.autoDark = H.theme ? !H.theme().light : false;
       if (req.method === 'POST') {
         const type = req.headers['content-type'] || '';
         if (type.startsWith('multipart/form-data')) { const parsed = parseMultipart(await readBody(req, MAX_UPLOAD), type); ctx.body = parsed.fields; ctx.files = parsed.files; }
