@@ -61,6 +61,30 @@ const SCHEMA = [
      id INTEGER PRIMARY KEY, report_id INTEGER NOT NULL REFERENCES reports(id) ON DELETE CASCADE, description TEXT NOT NULL, description_ta TEXT,
      category TEXT NOT NULL, district TEXT NOT NULL, amount_lkr INTEGER NOT NULL, file_id INTEGER, created_at TEXT NOT NULL)`,
   `CREATE TABLE IF NOT EXISTS audit (id INTEGER PRIMARY KEY, user_id INTEGER, action TEXT NOT NULL, detail TEXT, created_at TEXT NOT NULL)`,
+  /* ---- community hub ---- */
+  `CREATE TABLE IF NOT EXISTS posts (
+     id INTEGER PRIMARY KEY, org_id INTEGER NOT NULL REFERENCES orgs(id), user_id INTEGER NOT NULL, text TEXT NOT NULL, text_ta TEXT,
+     project_id INTEGER, file_id INTEGER, kind TEXT NOT NULL DEFAULT 'text', status TEXT NOT NULL DEFAULT 'live', likes INTEGER NOT NULL DEFAULT 0, created_at TEXT NOT NULL)`,
+  `CREATE TABLE IF NOT EXISTS post_likes (post_id INTEGER NOT NULL REFERENCES posts(id) ON DELETE CASCADE, user_id INTEGER NOT NULL, PRIMARY KEY (post_id, user_id))`,
+  `CREATE TABLE IF NOT EXISTS comments (
+     id INTEGER PRIMARY KEY, post_id INTEGER NOT NULL REFERENCES posts(id) ON DELETE CASCADE, user_id INTEGER NOT NULL, body TEXT NOT NULL,
+     status TEXT NOT NULL DEFAULT 'live', created_at TEXT NOT NULL)`,
+  `CREATE TABLE IF NOT EXISTS flags (
+     id INTEGER PRIMARY KEY, kind TEXT NOT NULL, target_id INTEGER NOT NULL, user_id INTEGER, reason TEXT, status TEXT NOT NULL DEFAULT 'open', created_at TEXT NOT NULL)`,
+  `CREATE TABLE IF NOT EXISTS events (
+     id INTEGER PRIMARY KEY, org_id INTEGER NOT NULL REFERENCES orgs(id), title TEXT NOT NULL, title_ta TEXT, starts_on TEXT NOT NULL, place TEXT NOT NULL, place_ta TEXT,
+     mode TEXT NOT NULL, price TEXT, details TEXT, details_ta TEXT, status TEXT NOT NULL DEFAULT 'pending', reason TEXT, going INTEGER NOT NULL DEFAULT 0, created_at TEXT NOT NULL)`,
+  `CREATE TABLE IF NOT EXISTS rsvps (event_id INTEGER NOT NULL REFERENCES events(id) ON DELETE CASCADE, user_id INTEGER NOT NULL, PRIMARY KEY (event_id, user_id))`,
+  `CREATE TABLE IF NOT EXISTS memorials (
+     id INTEGER PRIMARY KEY, user_id INTEGER NOT NULL, name TEXT NOT NULL, name_ta TEXT, years TEXT NOT NULL, town TEXT NOT NULL, town_ta TEXT,
+     tribute TEXT NOT NULL, tribute_ta TEXT, project_id INTEGER, file_id INTEGER, status TEXT NOT NULL DEFAULT 'pending', reason TEXT,
+     candles INTEGER NOT NULL DEFAULT 0, raised_pence INTEGER NOT NULL DEFAULT 0, created_at TEXT NOT NULL)`,
+  `CREATE TABLE IF NOT EXISTS candles (memorial_id INTEGER NOT NULL REFERENCES memorials(id) ON DELETE CASCADE, who TEXT NOT NULL, PRIMARY KEY (memorial_id, who))`,
+  `CREATE TABLE IF NOT EXISTS condolences (
+     id INTEGER PRIMARY KEY, memorial_id INTEGER NOT NULL REFERENCES memorials(id) ON DELETE CASCADE, user_id INTEGER NOT NULL, name TEXT NOT NULL, body TEXT NOT NULL,
+     status TEXT NOT NULL DEFAULT 'live', created_at TEXT NOT NULL)`,
+  `CREATE INDEX IF NOT EXISTS idx_posts_status ON posts(status, created_at)`,
+  `CREATE INDEX IF NOT EXISTS idx_events_status ON events(status, starts_on)`,
   `CREATE INDEX IF NOT EXISTS idx_projects_org ON projects(org_id)`,
   `CREATE INDEX IF NOT EXISTS idx_reports_org ON reports(org_id)`,
   `CREATE INDEX IF NOT EXISTS idx_expenses_report ON expenses(report_id)`,

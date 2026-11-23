@@ -2,6 +2,7 @@
 const { h, raw, gbp, lkr, monthLabel, dateLabel, RATE_LKR_PER_GBP } = require('../util');
 const { dt, CAUSES, TYPES, DISTRICTS, COUNTRIES } = require('../i18n');
 const { L, pct, avatar, verifiedTag, art, projectCard, csrfField, options, errors } = require('./parts');
+const C = require('./community');
 
 /* ---------------- home ---------------- */
 function home(ctx, d) {
@@ -23,6 +24,9 @@ function home(ctx, d) {
   </section>
   <section><div class="sec-h"><h2>${t('urgentNeeds')}</h2><a href="/projects">${t('allProjects')}</a></div>
     <div class="grid g3">${d.urgent.map((p) => projectCard(ctx, p))}</div></section>
+  <section><div class="sec-h"><h2>${t('fromCommunity')}</h2><a href="/community">${t('openFeed')}</a></div>
+    <div class="grid g3">${d.posts.map((p) => C.postCard(ctx, p, { full: false }))}</div></section>
+  ${d.events.length ? h`<section><div class="sec-h"><h2>${t('upcomingEvents')}</h2><a href="/events">${t('allEvents')}</a></div><div class="grid g3">${d.events.map((e) => C.eventCard(ctx, e, false))}</div></section>` : ''}
   <section class="grid g2">
     <div class="card pad stack"><h3>${t('trH')}</h3><p class="small muted">${t('trP')}</p><div><a class="btn pri" href="/transparency">${t('trBtn')}</a></div></div>
     <div class="card pad stack"><h3>${t('joinH')}</h3><p class="small muted">${t('joinP')}</p><div><a class="btn give" href="/join">${t('joinBtn')}</a></div></div>

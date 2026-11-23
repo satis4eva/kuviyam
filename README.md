@@ -8,6 +8,7 @@ Tamil and English giving platform for Kuviyam (kuviyam.org): verified charities,
 - **Donations:** one-off and monthly, Gift Aid flag, optional 5% tip, anonymous option, receipts. Payments run in **test mode** until the DPayments merchant account is ready (`src/payments.js`).
 - **Join as a partner:** account, then an application with registration, constitution, accounts and ID documents (PDF/JPG/PNG/WebP, 5 MB each, checked by content).
 - **Partner dashboard:** overview, bilingual projects, monthly reports with expense lines and receipt uploads, submit for review, students (first name only).
+- **Community hub:** partner feed with photos and short videos, likes, comments and reporting; events with approval and RSVP; obituaries and memorials with approval, candles, condolences and giving in memory.
 - **Admin:** review queue (applications with documents, monthly reports), approve or send back, partners list with suspend/reinstate, donations list.
 
 ## Run it
@@ -38,4 +39,4 @@ Node.js app, entry file `server.js`, start command `npm start`, Node 22. Set the
 
 ## Not in Phase 1 yet
 
-Live DPayments payments, email sending (Resend), community feed, events, memorials, password reset, and moving to PostgreSQL. See the build plan.
+Live DPayments payments, email sending (Resend), password reset, and moving to PostgreSQL. See the build plan.

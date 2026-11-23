@@ -5,7 +5,7 @@ const { h, raw } = require('../util');
 function layout(ctx, { title, body, active = '' }) {
   const { t, lang, user, csrf, flash } = ctx;
   const isPartner = user && user.orgs.some((o) => o.status === 'verified');
-  const nav = [['/', 'nav_home', 'home'], ['/projects', 'nav_projects', 'projects'], ['/partners', 'nav_partners', 'partners'], ['/sponsor', 'nav_sponsor', 'sponsor'], ['/transparency', 'nav_transparency', 'transparency']];
+  const nav = [['/', 'nav_home', 'home'], ['/projects', 'nav_projects', 'projects'], ['/partners', 'nav_partners', 'partners'], ['/sponsor', 'nav_sponsor', 'sponsor'], ['/community', 'nav_community', 'community'], ['/transparency', 'nav_transparency', 'transparency']];
   if (isPartner) nav.push(['/dashboard', 'nav_dashboard', 'dashboard']);
   else nav.push(['/join', 'nav_join', 'join']);
   if (user && user.role === 'admin') nav.push(['/admin', 'nav_admin', 'admin']);

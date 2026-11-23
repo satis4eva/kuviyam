@@ -8,7 +8,7 @@ const postBtn = (ctx, action, label, cls = '') => h`<form method="post" action="
 
 /* ================= partner dashboard ================= */
 function tabs(ctx, active) {
-  const items = [['/dashboard', 'tOverview', 'overview'], ['/dashboard/reports', 'tReports', 'reports'], ['/dashboard/projects/new', 'tProject', 'project'], ['/dashboard/students', 'tStudents', 'students']];
+  const items = [['/dashboard', 'tOverview', 'overview'], ['/dashboard/reports', 'tReports', 'reports'], ['/dashboard/projects/new', 'tProject', 'project'], ['/dashboard/students', 'tStudents', 'students'], ['/dashboard/posts', 'tPosts', 'posts'], ['/dashboard/events', 'tEvents', 'events']];
   return h`<nav class="tabs" aria-label="${ctx.t('pdH')}">${items.map(([href, k, id]) => h`<a href="${href}" class="${active === id ? 'on' : ''}">${ctx.t(k)}</a>`)}</nav>`;
 }
 function dashHead(ctx, org) {
@@ -110,7 +110,7 @@ function admin(ctx, d) {
   const { t, lang } = ctx;
   return h`<section><h1>${t('adH')}</h1><p class="muted">${t('adP')}</p></section>
   <section class="grid g4">
-    <div class="card pad"><div class="small muted">${t('waitingReview')}</div><b class="num mid">${d.apps.length + d.reports.length}</b></div>
+    <div class="card pad"><div class="small muted">${t('waitingReview')}</div><b class="num mid">${d.apps.length + d.reports.length + d.events.length + d.memorials.length + d.flags.length}</b></div>
     <div class="card pad"><div class="small muted">${t('livePartners')}</div><b class="num mid">${d.stats.partners}</b></div>
     <div class="card pad"><div class="small muted">${t('donationsPaid')}</div><b class="num mid">${gbp(d.stats.paid)}</b></div>
     <div class="card pad"><div class="small muted">${t('lateReports')}</div><b class="num mid">${d.stats.late}</b></div>
@@ -118,7 +118,12 @@ function admin(ctx, d) {
   <section class="card">
     ${d.apps.map((a) => h`<div class="queue-item"><div><span class="chip plain">${t('qApp')}</span><div><b>${a.name}</b> ${a.name_ta ? h`<span class="muted" lang="ta">${a.name_ta}</span>` : ''}</div><div class="small muted">${dt(a.type, lang)} · ${a.town}, ${dt(a.country, lang)} · ${t('docsUploaded', { n: a.docs })} · ${t('submitted', { d: dateLabel(a.created_at, lang) })}</div></div><a class="btn sm" href="/admin/applications/${a.id}">${t('reviewApp')}</a></div>`)}
     ${d.reports.map((r) => h`<div class="queue-item"><div><span class="chip plain">${t('qReport')}</span><div><b>${L(r, 'org_name', lang)} · ${monthLabel(r.month, lang)}</b></div><div class="small muted">${t('expensesDocs', { n: r.items, a: lkr(r.spent, lang), d: r.docs })}</div></div><a class="btn sm" href="/admin/reports/${r.id}">${t('checkDocs')}</a></div>`)}
-    ${d.apps.length + d.reports.length ? '' : h`<div class="empty">${t('allClear')}</div>`}
+    ${d.events.map((e) => h`<div class="queue-item"><div><span class="chip plain">${t('qEvent')}</span><div><b>${L(e, 'title', lang)}</b></div><div class="small muted">${L(e, 'org_name', lang)} · ${dateLabel(e.starts_on, lang)} · ${L(e, 'place', lang)}</div></div>
+      <div class="row">${postBtn(ctx, `/admin/events/${e.id}/approve`, t('approve'), 'pri')}${postBtn(ctx, `/admin/events/${e.id}/reject`, t('reject'))}</div></div>`)}
+    ${d.memorials.map((m) => h`<div class="queue-item"><div><span class="chip plain">${t('qObit')}</span><div><b>${L(m, 'name', lang)}</b></div><div class="small muted">${m.years} · ${L(m, 'town', lang)}</div></div><a class="btn sm" href="/admin/memorials/${m.id}">${t('reviewApp')}</a></div>`)}
+    ${d.flags.map((f) => h`<div class="queue-item"><div><span class="chip warn">${t('qFlag')}</span><div class="small">${(f.text || '').slice(0, 140)}</div>${f.reason ? h`<div class="tiny muted">${f.reason}</div>` : ''}</div>
+      <div class="row">${postBtn(ctx, `/admin/flags/${f.id}/keep`, t('keepPost'))}${postBtn(ctx, `/admin/flags/${f.id}/remove`, t('removePost'), 'pri')}</div></div>`)}
+    ${d.apps.length + d.reports.length + d.events.length + d.memorials.length + d.flags.length ? '' : h`<div class="empty">${t('allClear')}</div>`}
   </section>`;
 }
 function adminApplication(ctx, d) {
@@ -163,4 +168,4 @@ function adminDonations(ctx, d) {
   </tbody></table></section>`;
 }
 
-module.exports = { dashboard, newProject, reportsList, reportEdit, students, admin, adminApplication, adminReport, adminPartners, adminDonations };
+module.exports = { dashHead, tabs, dashboard, newProject, reportsList, reportEdit, students, admin, adminApplication, adminReport, adminPartners, adminDonations };

@@ -43,18 +43,25 @@ function parseMultipart(body, contentType) {
 const ALLOWED = { 'application/pdf': 'pdf', 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp' };
 const MAX_FILE = 5 * 1024 * 1024;
 
-/** Checks type by content (magic bytes), not just the browser's label. */
-function checkFile(f) {
-  if (!f) return 'missing';
-  if (f.data.length > MAX_FILE) return 'too_big';
-  const b = f.data;
-  const sniff = b.slice(0, 4).toString('latin1') === '%PDF' ? 'application/pdf'
-    : (b[0] === 0xff && b[1] === 0xd8) ? 'image/jpeg'
-    : (b[0] === 0x89 && b.slice(1, 4).toString('latin1') === 'PNG') ? 'image/png'
-    : (b.slice(0, 4).toString('latin1') === 'RIFF' && b.slice(8, 12).toString('latin1') === 'WEBP') ? 'image/webp' : null;
-  if (!sniff || !ALLOWED[sniff]) return 'bad_type';
-  f.mime = sniff;
+const MAX_VIDEO = 20 * 1024 * 1024;
+function sniff(b) {
+  if (b.slice(0, 4).toString('latin1') === '%PDF') return 'application/pdf';
+  if (b[0] === 0xff && b[1] === 0xd8) return 'image/jpeg';
+  if (b[0] === 0x89 && b.slice(1, 4).toString('latin1') === 'PNG') return 'image/png';
+  if (b.slice(0, 4).toString('latin1') === 'RIFF' && b.slice(8, 12).toString('latin1') === 'WEBP') return 'image/webp';
+  if (b.slice(4, 8).toString('latin1') === 'ftyp') return 'video/mp4';
   return null;
 }
 
-module.exports = { parseMultipart, checkFile, MAX_FILE };
+/** Checks type by content (magic bytes), not just the browser's label. kind: 'doc' (PDF or image) or 'media' (image or MP4 video). */
+function checkFile(f, kind = 'doc') {
+  if (!f) return 'missing';
+  const type = sniff(f.data);
+  const ok = kind === 'media' ? ['image/jpeg', 'image/png', 'image/webp', 'video/mp4'] : Object.keys(ALLOWED);
+  if (!type || !ok.includes(type)) return kind === 'media' ? 'bad_media' : 'bad_type';
+  if (f.data.length > (type === 'video/mp4' ? MAX_VIDEO : MAX_FILE)) return type === 'video/mp4' ? 'video_big' : 'too_big';
+  f.mime = type;
+  return null;
+}
+
+module.exports = { parseMultipart, checkFile, MAX_FILE, MAX_VIDEO };

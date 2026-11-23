@@ -171,6 +171,67 @@ async function step(name, fn) { await fn(); passed++; console.log('  ✓', name)
       assert.equal((await demo.post('/login', { email: 'partner@demo.kuviyam.org', password: 'demo-pass-2026', next: '/dashboard' })).location, '/dashboard');
       assert.match((await demo.get('/dashboard')).text, /Vanni Learning Trust/);
     });
+    const PNG = Buffer.concat([Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]), Buffer.alloc(64)]);
+    const MP4 = Buffer.concat([Buffer.from([0, 0, 0, 0x18]), Buffer.from('ftypmp42'), Buffer.alloc(64)]);
+    const partner = new Client(); await partner.get('/login'); await partner.post('/login', { email: 'partner@demo.kuviyam.org', password: 'demo-pass-2026' });
+    const member = new Client(); await member.get('/register'); await member.post('/register', { name: 'Ravi Member', email: 'ravi@example.org', password: 'ravi-password-1' });
+    await step('community feed shows partner posts in both languages', async () => {
+      const f = await anon.get('/community'); assert.equal(f.status, 200); assert.match(f.text, /water tank at Haputale/); assert.match(f.text, /Log in to like/);
+      const ta = new Client(); await ta.get('/lang/ta?back=/'); assert.match((await ta.get('/community')).text, /அப்புத்தளையில்/);
+      assert.match((await anon.get('/')).text, /From the community/);
+    });
+    await step('partner posts a photo and a video; bad media is refused', async () => {
+      await partner.get('/dashboard/posts');
+      assert.equal((await partner.postMultipart('/dashboard/posts', { text: 'Bad file' }, { media: ['x.gif', Buffer.from('GIF89a'), 'image/gif'] })).status, 400);
+      assert.equal((await partner.postMultipart('/dashboard/posts', { text: 'New desks arrived at Poonakary', text_ta: 'பூநகரிக்குப் புதிய மேசைகள்', project_id: '8' }, { media: ['desks.png', PNG, 'image/png'] })).location, '/community');
+      assert.equal((await partner.postMultipart('/dashboard/posts', { text: 'Evening class video' }, { media: ['class.mp4', MP4, 'video/mp4'] })).status, 303);
+      const feed = await anon.get('/community'); assert.match(feed.text, /New desks arrived/); assert.match(feed.text, /<video src="\/files\/\d+"/);
+      const img = /<img src="\/files\/(\d+)"/.exec(feed.text)[1]; assert.equal((await anon.get('/files/' + img)).type, 'image/png');
+    });
+    await step('likes and comments need an account; reported posts can be removed', async () => {
+      const id = /id="post-(\d+)"/.exec((await anon.get('/community')).text)[1];
+      assert.match((await anon.post(`/community/posts/${id}/like`, {})).location, /^\/login/);
+      await member.get('/community');
+      await member.post(`/community/posts/${id}/like`, {});
+      assert.match((await member.get('/community')).text, new RegExp(`id="post-${id}"[\\s\\S]*?♥ <span class="num">1</span>`));
+      await member.post(`/community/posts/${id}/like`, {});
+      await member.post(`/community/posts/${id}/comment`, { body: 'Wonderful to see this!' });
+      assert.match((await anon.get('/community')).text, /Wonderful to see this!/);
+      await anon.post(`/community/posts/${id}/report`, { reason: 'test' });
+      const q = await admin.get('/admin'); assert.match(q.text, /Reported/); const fid = /\/admin\/flags\/(\d+)\/remove/.exec(q.text)[1];
+      await admin.post(`/admin/flags/${fid}/remove`, {});
+      assert.doesNotMatch((await anon.get('/community')).text, new RegExp(`id="post-${id}"`));
+    });
+    await step('events need approval; members can RSVP', async () => {
+      await partner.get('/dashboard/events');
+      const future = new Date(Date.now() + 10 * 864e5).toISOString().slice(0, 10);
+      assert.equal((await partner.post('/dashboard/events', { title: 'Old', starts_on: '2020-01-01', place: 'X', mode: 'online' })).status, 400);
+      await partner.post('/dashboard/events', { title: 'Kilinochchi prize day', title_ta: 'கிளிநொச்சி பரிசளிப்பு விழா', starts_on: future, place: 'Kilinochchi', mode: 'inperson' });
+      assert.doesNotMatch((await anon.get('/events')).text, /Kilinochchi prize day/);
+      const q = await admin.get('/admin'); const eid = /\/admin\/events\/(\d+)\/approve/.exec(q.text)[1];
+      await admin.post(`/admin/events/${eid}/approve`, {});
+      assert.match((await anon.get('/events')).text, /Kilinochchi prize day/);
+      await member.get('/events'); await member.post(`/events/${eid}/rsvp`, {});
+      assert.match((await member.get('/events')).text, /You’re going/);
+    });
+    await step('memorials: approval, candles, condolences, giving in memory', async () => {
+      await member.get('/memorials/new');
+      const r = await member.postMultipart('/memorials', { name: 'Sinnathamby Rasiah', years: '1938 – 2026', town: 'Point Pedro', tribute: 'Teacher and gardener.', project_id: '4' }, { photo: ['p.png', PNG, 'image/png'] });
+      assert.equal(r.location, '/memorials');
+      const q = await admin.get('/admin'); const mid = /\/admin\/memorials\/(\d+)/.exec(q.text)[1];
+      assert.equal((await anon.get('/memorials/' + mid)).status, 404);
+      await admin.get('/admin/memorials/' + mid); await admin.post(`/admin/memorials/${mid}/approve`, {});
+      assert.match((await anon.get('/memorials')).text, /Sinnathamby Rasiah/);
+      await anon.get('/memorials/' + mid);
+      await anon.post(`/memorials/${mid}/candle`, {}); await anon.post(`/memorials/${mid}/candle`, {});
+      assert.match((await anon.get('/memorials/' + mid)).text, /1 candles lit/);
+      await member.get('/memorials/' + mid); await member.post(`/memorials/${mid}/condolence`, { name: 'Ravi', body: 'Rest in peace, Sir.' });
+      assert.match((await anon.get('/memorials/' + mid)).text, /Rest in peace, Sir\./);
+      await anon.get(`/donate?kind=memorial&id=${mid}`);
+      const d = await anon.post('/donate', { kind: 'memorial', id: mid, amount: '15', donor_name: 'Friend', donor_email: 'f@example.com' });
+      await anon.post(d.location, {});
+      assert.match((await anon.get('/memorials/' + mid)).text, /£15<\/b>/);
+    });
     await step('suspending a partner hides its pages', async () => {
       await admin.get('/admin/partners');
       await admin.post('/admin/partners/1/suspend', {}); // seeded Vanni Learning Trust

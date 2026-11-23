@@ -109,4 +109,47 @@ function seedDemo(db) {
   return true;
 }
 
-module.exports = { seedDemo, samplePdf };
+/** Sample community content (feed, events, memorials). Runs once, on any database that has partners but no posts yet. */
+function seedCommunity(db) {
+  if (db.prepare('SELECT COUNT(*) n FROM posts').get().n > 0) return false;
+  const org = (slug) => db.prepare('SELECT id FROM orgs WHERE slug = ?').get(slug);
+  const proj = (title) => db.prepare('SELECT id FROM projects WHERE title = ?').get(title);
+  const need = ['vanni-learning-trust', 'uva-hill-schools-fund', 'jaffna-mobile-libraries', 'batticaloa-womens-livelihoods', 'trinco-coconut-growers'].map(org);
+  if (need.some((x) => !x)) return false;
+  const ago = (h) => new Date(Date.now() - h * 3600e3).toISOString();
+  const day = (d) => new Date(Date.now() + d * 864e5).toISOString().slice(0, 10);
+  db.exec('BEGIN');
+  try {
+    const posts = [
+      [0, 'Our O/L scholarship students started evening classes this week. Thank you to everyone sponsoring a stipend!', 'எமது சா/த புலமைப்பரிசில் மாணவர்கள் இவ்வாரம் மாலைநேர வகுப்புகளைத் தொடங்கினர். உதவித்தொகை வழங்கும் அனைவருக்கும் நன்றி!', 'Scholarships for 40 O/L students', 2, 84],
+      [1, 'The water tank at Haputale is in. Final pipes go in next week.', 'அப்புத்தளையில் குடிநீர்த் தாங்கி பொருத்தப்பட்டது. இறுதிக் குழாய்கள் அடுத்த வாரம்.', 'Clean water tank for Haputale Tamil Vidyalaya', 5, 132],
+      [2, 'First test drive of the library van frame. 1,500 books still to go.', 'நூலக வாகனச் சட்டகத்தின் முதல் சோதனை ஓட்டம். இன்னும் 1,500 புத்தகங்கள் தேவை.', 'A mobile library van for Jaffna villages', 26, 57],
+      [3, 'Meet the first 12 mothers finishing their sewing course.', 'தையல் பயிற்சியை நிறைவு செய்யும் முதல் 12 தாய்மாரைச் சந்தியுங்கள்.', 'Sewing machines for 30 mothers', 50, 96],
+      [4, 'First 200 seedlings planted in Kuchchaveli. Families repay into the fund after the first harvest.', 'குச்சவெளியில் முதல் 200 கன்றுகள் நடப்பட்டன. முதல் அறுவடைக்குப் பின் குடும்பங்கள் நிதியத்துக்குத் திருப்பிச் செலுத்துவர்.', 'Coconut seedlings for 50 families (revolving fund)', 72, 41]
+    ];
+    for (const [o, text, ta, pt, h, likes] of posts) {
+      const p = proj(pt);
+      db.prepare(`INSERT INTO posts (org_id, user_id, text, text_ta, project_id, kind, status, likes, created_at) VALUES (?, 0, ?, ?, ?, 'text', 'live', ?, ?)`).run(need[o].id, text, ta, p ? p.id : null, likes, ago(h));
+    }
+    const events = [
+      [0, 'Poonakary learning centre groundbreaking', 'பூநகரி கற்றல் நிலைய அடிக்கல் நாட்டு விழா', 13, 'Poonakary, Kilinochchi', 'பூநகரி, கிளிநொச்சி', 'inperson', null, 46],
+      [2, 'London fundraising dinner for the library van', 'நூலக வாகனத்துக்கான லண்டன் நிதி சேகரிப்பு இராப்போசனம்', 20, 'Harrow, London', 'ஹரோ, லண்டன்', 'tickets', '£35', 112],
+      [1, 'Volunteer week: paint and repair Lunugala school', 'தன்னார்வ வாரம்: லுனுகலை பாடசாலைக்கு வர்ணம் பூசித் திருத்துதல்', 56, 'Lunugala, Badulla', 'லுனுகலை, பதுளை', 'volunteers', null, 18],
+      [4, 'Online: coconut farming Q&A with growers', 'இணையவழி: தென்னை வளர்ப்போருடன் கேள்வி-பதில்', 9, 'Online', 'இணையவழி', 'online', null, 73]
+    ];
+    for (const [o, title, ta, d, place, placeTa, mode, price, going] of events) {
+      db.prepare(`INSERT INTO events (org_id, title, title_ta, starts_on, place, place_ta, mode, price, status, going, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'live', ?, ?)`).run(need[o].id, title, ta, day(d), place, placeTa, mode, price, going, ago(1));
+    }
+    const lib = proj('A mobile library van for Jaffna villages'); const water = proj('Clean water tank for Haputale Tamil Vidyalaya');
+    const m1 = Number(db.prepare(`INSERT INTO memorials (user_id, name, name_ta, years, town, town_ta, tribute, tribute_ta, project_id, status, candles, raised_pence, created_at) VALUES (0, ?, ?, '1941 – 2026', ?, ?, ?, ?, ?, 'live', 212, 184000, ?)`)
+      .run('Selvanayagam Kandiah', 'செல்வநாயகம் கந்தையா', 'Jaffna and Wembley', 'யாழ்ப்பாணம், வெம்பிளி', 'Retired headmaster who taught three generations in Jaffna. He believed every child deserved a book of their own.', 'யாழ்ப்பாணத்தில் மூன்று தலைமுறைகளுக்குக் கற்பித்த ஓய்வுபெற்ற அதிபர். ஒவ்வொரு பிள்ளைக்கும் சொந்தப் புத்தகம் வேண்டும் என நம்பியவர்.', lib ? lib.id : null, ago(200)).lastInsertRowid);
+    db.prepare(`INSERT INTO condolences (memorial_id, user_id, name, body, created_at) VALUES (?, 0, ?, ?, ?)`).run(m1, 'Former student, Toronto', 'You gave me my first English book. Rest in peace, Sir.', ago(150));
+    db.prepare(`INSERT INTO condolences (memorial_id, user_id, name, body, created_at) VALUES (?, 0, ?, ?, ?)`).run(m1, 'இராசன் குடும்பம்', 'அம்மாவுக்கும் குடும்பத்தினருக்கும் எமது ஆழ்ந்த இரங்கல்கள்.', ago(120));
+    db.prepare(`INSERT INTO memorials (user_id, name, name_ta, years, town, town_ta, tribute, tribute_ta, project_id, status, candles, raised_pence, created_at) VALUES (0, ?, ?, '1950 – 2026', ?, ?, ?, ?, ?, 'live', 88, 62000, ?)`)
+      .run('Kamalambigai Sivapalan', 'கமலாம்பிகை சிவபாலன்', 'Vavuniya', 'வவுனியா', 'Nurse, mother of four and the heart of her village. Always the first to help a neighbour.', 'தாதி, நான்கு பிள்ளைகளின் தாய், ஊரின் இதயம். அயலவருக்கு உதவ எப்போதும் முதலில் நிற்பவர்.', water ? water.id : null, ago(330));
+    db.exec('COMMIT');
+  } catch (e) { db.exec('ROLLBACK'); throw e; }
+  return true;
+}
+
+module.exports = { seedDemo, seedCommunity, samplePdf };

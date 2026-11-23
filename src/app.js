@@ -10,6 +10,7 @@ const { parseMultipart, checkFile } = require('./multipart');
 const { provider } = require('./payments');
 const { audit } = require('./db');
 const { layout } = require('./views/layout');
+const { registerCommunity } = require('./community');
 const P = require('./views/pages');
 const M = require('./views/manage');
 
@@ -58,6 +59,7 @@ function createApp(db) {
     .run(kind, ownerId, label, f.filename, f.mime, f.data.length, f.data, nowIso()).lastInsertRowid);
   const tx = (fn) => { db.exec('BEGIN'); try { const r = fn(); db.exec('COMMIT'); return r; } catch (e) { db.exec('ROLLBACK'); throw e; } };
   const fileErr = (ctx, code, name) => ctx.t('file_' + code, { f: name });
+  const H = { db, page: (...a) => page(...a), redirect: (...a) => redirect(...a), requireUser: (c) => requireUser(c), partnerOrg: (c) => partnerOrg(c), requireAdmin: (c) => requireAdmin(c), saveFile: (...a) => saveFile(...a), tx: (f) => tx(f), HttpError, fileErr: (...a) => fileErr(...a) };
   const maskEmail = (e) => { const [u, d] = String(e).split('@'); return (u ? u[0] : '') + '•••@' + (d || ''); };
 
   /* ---------------- language ---------------- */
@@ -76,7 +78,9 @@ function createApp(db) {
       raised: live.reduce((a, p) => a + p.raised_pence, 0), projects: live.length,
       partners: db.prepare(`SELECT COUNT(*) n FROM orgs WHERE status = 'verified'`).get().n,
       sponsored: db.prepare(`SELECT COUNT(*) n FROM students WHERE sponsored = 1`).get().n,
-      urgent: live.filter((p) => p.urgent).slice(0, 6)
+      urgent: live.filter((p) => p.urgent).slice(0, 6),
+      posts: H.loadPosts(ctx, `p.status = 'live' AND o.status = 'verified'`, [], 3),
+      events: db.prepare(`SELECT e.*, o.name AS org_name, o.name_ta AS org_name_ta, o.slug AS org_slug FROM events e JOIN orgs o ON o.id = e.org_id WHERE e.status = 'live' AND o.status = 'verified' AND e.starts_on >= ? ORDER BY e.starts_on LIMIT 3`).all(new Date().toISOString().slice(0, 10))
     };
     if (!d.urgent.length) d.urgent = live.slice(0, 6);
     page(ctx, { body: P.home(ctx, d), active: 'home' });
@@ -163,6 +167,13 @@ function createApp(db) {
       const r = db.prepare(`SELECT r.status, r.org_id, o.status AS ostatus FROM expenses e JOIN reports r ON r.id = e.report_id JOIN orgs o ON o.id = r.org_id WHERE e.id = ?`).get(f.owner_id);
       if (r && r.status === 'published' && r.ostatus === 'verified') allowed = true;
       if (r && ctx.user && ctx.user.orgs.some((x) => x.id === r.org_id)) allowed = true;
+    } else if (f.owner_kind === 'post') {
+      const p = db.prepare(`SELECT p.status, p.org_id, o.status AS ostatus FROM posts p JOIN orgs o ON o.id = p.org_id WHERE p.id = ?`).get(f.owner_id);
+      if (p && p.status === 'live' && p.ostatus === 'verified') allowed = true;
+      if (p && ctx.user && ctx.user.orgs.some((x) => x.id === p.org_id)) allowed = true;
+    } else if (f.owner_kind === 'memorial') {
+      const m = db.prepare('SELECT status, user_id FROM memorials WHERE id = ?').get(f.owner_id);
+      if (m && (m.status === 'live' || (ctx.user && m.user_id === ctx.user.id))) allowed = true;
     } else if (f.owner_kind === 'application') {
       const a = db.prepare('SELECT user_id FROM applications WHERE id = ?').get(f.owner_id);
       if (a && ctx.user && a.user_id === ctx.user.id) allowed = true;
@@ -177,6 +188,7 @@ function createApp(db) {
   const target = (kind, id) => {
     if (kind === 'project') { const p = db.prepare(`${PROJECT_SQL} WHERE p.id = ? AND p.status = 'live' AND o.status = 'verified'`).get(id); return p && { orgId: p.org_id, name: (lang) => (lang === 'ta' && p.title_ta) || p.title }; }
     if (kind === 'org') { const o = db.prepare(`SELECT * FROM orgs WHERE id = ? AND status = 'verified'`).get(id); return o && { orgId: o.id, name: (lang) => (lang === 'ta' && o.name_ta) || o.name }; }
+    if (kind === 'memorial') { const m = db.prepare(`SELECT m.*, p.org_id FROM memorials m JOIN projects p ON p.id = m.project_id JOIN orgs o ON o.id = p.org_id WHERE m.id = ? AND m.status = 'live' AND p.status = 'live' AND o.status = 'verified'`).get(id); return m && { orgId: m.org_id, name: (lang, t) => t('inMemOf', { n: (lang === 'ta' && m.name_ta) || m.name }) }; }
     if (kind === 'student') { const s = db.prepare(`SELECT s.* FROM students s JOIN orgs o ON o.id = s.org_id WHERE s.id = ? AND s.sponsored = 0 AND o.status = 'verified'`).get(id); return s && { orgId: s.org_id, fixed: s.monthly_pence, name: (lang, t) => t('schFor', { n: (lang === 'ta' && s.name_ta) || s.name }) }; }
     return null;
   };
@@ -206,6 +218,7 @@ function createApp(db) {
   const donationName = (ctx, x) => { const tg = (() => {
       if (x.kind === 'project') { const p = db.prepare('SELECT title, title_ta FROM projects WHERE id = ?').get(x.target_id); return p && ((ctx.lang === 'ta' && p.title_ta) || p.title); }
       if (x.kind === 'org') { const o = db.prepare('SELECT name, name_ta FROM orgs WHERE id = ?').get(x.target_id); return o && ((ctx.lang === 'ta' && o.name_ta) || o.name); }
+      if (x.kind === 'memorial') { const m = db.prepare('SELECT name, name_ta FROM memorials WHERE id = ?').get(x.target_id); return m && ctx.t('inMemOf', { n: (ctx.lang === 'ta' && m.name_ta) || m.name }); }
       const s = db.prepare('SELECT name, name_ta FROM students WHERE id = ?').get(x.target_id); return s && ctx.t('schFor', { n: (ctx.lang === 'ta' && s.name_ta) || s.name });
     })(); return tg || ''; };
   route('GET', '/pay/:ref', (ctx) => {
@@ -223,6 +236,11 @@ function createApp(db) {
       if (upd.changes !== 1) return;
       if (x.kind === 'project') db.prepare('UPDATE projects SET raised_pence = raised_pence + ?, donors = donors + 1 WHERE id = ?').run(x.amount_pence, x.target_id);
       if (x.kind === 'student') db.prepare('UPDATE students SET sponsored = 1 WHERE id = ?').run(x.target_id);
+      if (x.kind === 'memorial') {
+        const m = db.prepare('SELECT project_id FROM memorials WHERE id = ?').get(x.target_id);
+        db.prepare('UPDATE memorials SET raised_pence = raised_pence + ? WHERE id = ?').run(x.amount_pence, x.target_id);
+        if (m && m.project_id) db.prepare('UPDATE projects SET raised_pence = raised_pence + ?, donors = donors + 1 WHERE id = ?').run(x.amount_pence, m.project_id);
+      }
     });
     redirect(ctx, `/thanks/${x.ref}`);
   });
@@ -433,7 +451,7 @@ function createApp(db) {
       .map((r) => ({ ...r, spent: spentOf(r.id), items: db.prepare('SELECT COUNT(*) n FROM expenses WHERE report_id = ?').get(r.id).n, docs: db.prepare('SELECT COUNT(*) n FROM expenses WHERE report_id = ? AND file_id IS NOT NULL').get(r.id).n }));
     const orgs = db.prepare(`SELECT id FROM orgs WHERE status = 'verified'`).all();
     const stats = { partners: orgs.length, late: orgs.filter((o) => isLate(o.id)).length, paid: db.prepare(`SELECT COALESCE(SUM(amount_pence),0) s FROM donations WHERE status = 'paid'`).get().s };
-    page(ctx, { title: ctx.t('adH'), active: 'admin', body: M.admin(ctx, { apps, reports, stats }) });
+    page(ctx, { title: ctx.t('adH'), active: 'admin', body: M.admin(ctx, { apps, reports, stats, ...H.adminCommunityQueue() }) });
   });
   route('GET', '/admin/applications/:id', (ctx) => {
     if (!requireAdmin(ctx)) return;
@@ -500,6 +518,9 @@ function createApp(db) {
     const list = db.prepare(`SELECT d.*, o.name AS org_name, o.name_ta AS org_name_ta FROM donations d JOIN orgs o ON o.id = d.org_id ORDER BY d.id DESC LIMIT 200`).all();
     page(ctx, { title: ctx.t('tDonations'), active: 'admin', body: M.adminDonations(ctx, { list }) });
   });
+
+  /* ---------------- community hub ---------------- */
+  registerCommunity(route, H);
 
   /* ---------------- request handling ---------------- */
   function serveStatic(ctx) {

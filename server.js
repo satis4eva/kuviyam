@@ -1,11 +1,14 @@
 'use strict';
 const http = require('node:http');
 const { open } = require('./src/db');
-const { seedDemo } = require('./src/seed');
+const { seedDemo, seedCommunity } = require('./src/seed');
 const { createApp } = require('./src/app');
 
 const db = open();
-if (process.env.SEED_DEMO === '1' && seedDemo(db)) console.log('Seeded demo data.');
+if (process.env.SEED_DEMO === '1') {
+  if (seedDemo(db)) console.log('Seeded demo data.');
+  if (seedCommunity(db)) console.log('Seeded community demo data.');
+}
 
 const server = http.createServer(createApp(db));
 server.requestTimeout = 60_000;
