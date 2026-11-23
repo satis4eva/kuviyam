@@ -350,6 +350,18 @@ async function step(name, fn) { await fn(); passed++; console.log('  ✓', name)
       assert.match((await anon.get('/membership')).text, /£6/);
       assert.match((await admin.get('/admin/membership')).text, /Asha Member/);
     });
+    await step('admins change the site colours; unreadable colours are refused', async () => {
+      assert.equal((await asha.get('/admin/theme')).status, 403);
+      assert.equal((await admin.get('/admin/theme')).status, 200);
+      await admin.post('/admin/theme', { preset: 'temple' });
+      assert.match((await anon.get('/')).text, /--brand:#8C2633/);
+      await admin.post('/admin/theme', { bg: '#222222', brand: '#0D6B5B', accent: '#E39A12' });
+      assert.match((await anon.get('/')).text, /--brand:#8C2633/); // dark background refused, old colours kept
+      await admin.post('/admin/theme', { bg: '#FFFFFF', brand: '#1F5FA0', accent: '#F2A33A' });
+      assert.match((await anon.get('/')).text, /--bg:#FFFFFF;[^}]*--brand:#1F5FA0/);
+      await admin.post('/admin/theme', { reset: '1' });
+      assert.doesNotMatch((await anon.get('/')).text, /--brand:#/);
+    });
     await step('logout ends the session', async () => {
       await applicant.post('/logout', {});
       assert.equal((await applicant.get('/dashboard')).status, 303);

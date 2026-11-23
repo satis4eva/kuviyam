@@ -12,6 +12,7 @@ const { audit } = require('./db');
 const { layout } = require('./views/layout');
 const { registerCommunity } = require('./community');
 const { registerSocial, can } = require('./social');
+const { registerTheme } = require('./theme');
 const P = require('./views/pages');
 const M = require('./views/manage');
 
@@ -591,6 +592,7 @@ function createApp(db) {
   /* ---------------- community hub ---------------- */
   registerCommunity(route, H);
   registerSocial(route, H);
+  registerTheme(route, H);
 
   /* ---------------- request handling ---------------- */
   function serveStatic(ctx) {
@@ -625,6 +627,7 @@ function createApp(db) {
       ctx.user = auth.userFromSession(db, cookies.sid);
       ctx.counts = H.counts ? H.counts(ctx.user) : null;
       ctx.big = cookies.big === '1';
+      ctx.themeCss = H.themeCss ? H.themeCss() : '';
       if (req.method === 'POST') {
         const type = req.headers['content-type'] || '';
         if (type.startsWith('multipart/form-data')) { const parsed = parseMultipart(await readBody(req, MAX_UPLOAD), type); ctx.body = parsed.fields; ctx.files = parsed.files; }

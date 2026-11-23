@@ -71,7 +71,7 @@ function home(ctx, d) {
     ? homeBox(ctx, { href: counts.msgs ? '/messages' : counts.notes ? '/notifications' : `/members/${user.id}`, key: 'me', icon: '⭐', ...BI('Your space', 'உங்கள் பகுதி'), cls: 'hb-me',
         band: h`<span class="hb-mosaic">${memberAvatar(user, 'lg')}</span>`,
         extra: h`<b>${t('hiName', { n: String(user.name).split(' ')[0] })}</b>`,
-        live: counts.msgs || counts.notes ? t('hbMine', { m: counts.msgs || 0, n: counts.notes || 0 }) : user.tier === 'free' ? t('hbUpgrade') : t('hbMember', { t: t('tier_' + user.tier) }) })
+        live: counts.msgs || counts.notes ? t('hbMine', { m: counts.msgs || 0, n: counts.notes || 0 }) : user.role === 'admin' || user.orgs.some((o) => o.status === 'verified') ? t('hbProfile') : user.tier === 'free' ? t('hbUpgrade') : t('hbMember', { t: t('tier_' + user.tier) }) })
     : homeBox(ctx, { href: '/membership', key: 'join', icon: '⭐', ...BI('Join free', 'இலவசமாக இணைக'), cls: 'hb-join', band: h`<span class="hb-emoji">🙌</span>`, live: t('hbJoin') });
   return h`
   <section class="welcome">

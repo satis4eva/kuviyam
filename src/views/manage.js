@@ -103,7 +103,7 @@ function students(ctx, d) {
 
 /* ================= admin ================= */
 function adminTabs(ctx, active) {
-  const items = [['/admin', 'tQueue', 'queue'], ['/admin/partners', 'tPartners', 'partners'], ['/admin/donations', 'tDonations', 'donations'], ['/admin/membership', 'tMembership', 'membership'], ['/admin/admins', 'tAdmins', 'admins']];
+  const items = [['/admin', 'tQueue', 'queue'], ['/admin/partners', 'tPartners', 'partners'], ['/admin/donations', 'tDonations', 'donations'], ['/admin/membership', 'tMembership', 'membership'], ['/admin/theme', 'tTheme', 'theme'], ['/admin/admins', 'tAdmins', 'admins']];
   return h`<nav class="tabs" aria-label="${ctx.t('adH')}">${items.map(([href, k, id]) => h`<a href="${href}" class="${active === id ? 'on' : ''}">${ctx.t(k)}</a>`)}</nav>`;
 }
 function admin(ctx, d) {

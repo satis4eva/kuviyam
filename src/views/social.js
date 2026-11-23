@@ -154,4 +154,28 @@ function adminMembership(ctx, d) {
     </tbody></table></section>`;
 }
 
-module.exports = { plans, pay, members, profile, followList, editProfile, inbox, thread, notifications, adminMembership };
+function adminTheme(ctx, d) {
+  const { t, lang } = ctx; const th = d.theme; const { adminTabs } = require('./manage');
+  const current = d.presets.find((p) => p.bg === th.bg && p.brand === th.brand && p.accent === th.accent);
+  const pick = (name, label, hint) => h`<label class="f">${label}<span class="colour"><input type="color" name="${name}" value="${th[name]}" data-preview="${name}" aria-label="${label}"><span class="tiny muted">${hint}<br><code data-hex="${name}">${th[name]}</code></span></span></label>`;
+  return h`<section><h1>${t('adH')}</h1></section>${adminTabs(ctx, 'theme')}
+  <section class="stack"><div><h2>${t('themeSets')}</h2><p class="small muted">${t('themeSetsP')}</p></div>
+    <div class="swatches">${d.presets.map((p) => h`<form method="post" action="/admin/theme">${csrfField(ctx)}<input type="hidden" name="preset" value="${p.key}">
+      <button class="swatch${current && current.key === p.key ? ' on' : ''}"><span class="sw-demo" style="background:${p.bg}"><i class="w"></i><i style="background:${p.brand};width:70%"></i><i style="background:${p.accent};width:45%"></i></span>
+      <b>${lang === 'ta' ? p.ta : p.en}</b>${current && current.key === p.key ? h`<span class="tiny muted">${t('themeInUse')}</span>` : ''}</button></form>`)}</div></section>
+  <section class="split">
+    <form class="card pad form" method="post" action="/admin/theme" id="themeform">${csrfField(ctx)}<h2>${t('themeOwn')}</h2><p class="tiny muted">${t('themeOwnP')}</p>
+      ${pick('bg', t('colBg'), t('colBgHint'))}${pick('brand', t('colBrand'), t('colBrandHint'))}${pick('accent', t('colAccent'), t('colAccentHint'))}
+      <button class="btn pri">${t('save')}</button></form>
+    <div class="stack"><h2>${t('themePreview')}</h2>
+      <div class="preview" id="themepreview" style="background:${th.bg}">
+        <div class="card pad stack"><b>${t('homeH')}</b><span class="small muted">${t('homeLead')}</span>
+          <span class="row"><span class="btn" data-role="accent" style="background:${th.accent};border-color:${th.accent}">${t('giveNow')}</span><span class="btn" data-role="brand" style="background:${th.brand};border-color:${th.brand};color:#fff">${t('joinFree')}</span><a data-role="link" style="color:${th.brand}">${t('allProjects')}</a></span></div>
+      </div>
+      <form method="post" action="/admin/theme">${csrfField(ctx)}<input type="hidden" name="reset" value="1"><button class="btn sm ghost">${t('themeReset')}</button></form>
+      <p class="tiny muted">${t('themeDarkNote')}</p></div>
+  </section>
+  <script src="/static/theme-admin.js" defer></script>`;
+}
+
+module.exports = { adminTheme, plans, pay, members, profile, followList, editProfile, inbox, thread, notifications, adminMembership };

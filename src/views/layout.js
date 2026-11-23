@@ -32,6 +32,7 @@ function layout(ctx, { title, body, active = '', og }) {
 <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=Figtree:wght@400;500;600;700&family=Noto+Sans+Tamil:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="/static/styles.css?v=${stamp['styles.css']}">
 <link rel="icon" href="/static/logo.svg" type="image/svg+xml">
+${ctx.themeCss ? h`<style>${raw(ctx.themeCss)}</style>` : ''}
 <meta property="og:site_name" content="${t('brand')}">
 <meta property="og:type" content="website">
 <meta property="og:title" content="${og ? og.title : (title || t('brand'))}">

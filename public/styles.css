@@ -1,6 +1,6 @@
 /* Kuviyam: teal = platform, saffron = giving actions. Light and dark themes. */
 :root{
-  --bg:#F3F6F5; --surface:#FFFFFF; --ink:#13232B; --muted:#5A6B72; --line:#DAE3E0;
+  --bg:#F8FAF9; --surface:#FFFFFF; --ink:#13232B; --muted:#5A6B72; --line:#DFE6E3;
   --brand:#0D6B5B; --brand-soft:#E1F0EC; --accent:#E39A12; --accent-ink:#2B1A00;
   --good:#1E8449; --warn:#B86E00; --bad:#BF3A2B;
   --display:"Bricolage Grotesque","Noto Sans Tamil","Segoe UI",system-ui,sans-serif;
@@ -268,7 +268,7 @@ details.more>.card{position:absolute;right:0;top:110%;z-index:5;width:240px}
 .plans{grid-template-columns:repeat(auto-fit,minmax(260px,1fr))}
 
 /* ---- home: welcome, feed first, picture boxes ---- */
-.welcome{display:grid;grid-template-columns:1.6fr 1fr;gap:24px;align-items:center;background:linear-gradient(120deg,#E1F0EC,#E3EEF8 55%,#FDF0D8);border:1px solid var(--line);border-radius:22px;padding:28px 32px}
+.welcome{display:grid;grid-template-columns:1.6fr 1fr;gap:24px;align-items:center;background:linear-gradient(120deg,var(--brand-soft),#EEF4FB 55%,#FDF5E6);border:1px solid var(--line);border-radius:22px;padding:28px 32px}
 .welcome>*{min-width:0}
 .w-hello{font-family:var(--display);color:#B5542D;font-weight:800;font-size:18px;margin:0 0 4px}
 .welcome .lead{font-size:17px;color:var(--muted);margin-top:10px;max-width:60ch}
@@ -375,3 +375,15 @@ html.big body{zoom:1.15}
   .lang a{padding:5px 8px}
 }
 @media (max-width:720px){.hb-join{display:none}.fm-list .fm:nth-child(n+4){display:none}}
+
+/* ---- admin theme ---- */
+.swatches{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:12px}
+.swatch{display:grid;gap:8px;padding:12px;border:1px solid var(--line);border-radius:14px;background:var(--surface);cursor:pointer;text-align:left;font:inherit;color:var(--ink)}
+.swatch:hover{border-color:var(--brand)}
+.swatch.on{border:2px solid var(--brand)}
+.sw-demo{display:grid;gap:6px;padding:10px;border-radius:10px;border:1px solid rgba(0,0,0,.08)}
+.sw-demo i{display:block;height:12px;border-radius:6px}
+.sw-demo i.w{background:#fff;height:22px;border:1px solid rgba(0,0,0,.06)}
+.colour{display:grid;grid-template-columns:56px 1fr;gap:10px;align-items:center}
+.colour input[type=color]{width:56px;height:44px;padding:2px;border:1px solid var(--line);border-radius:10px;background:var(--surface);cursor:pointer}
+.preview{border:1px solid var(--line);border-radius:16px;padding:16px;display:grid;gap:10px}
