@@ -157,6 +157,16 @@ const T = {
   birthplaceEn: ['Home town or village (English)', 'சொந்த ஊர் (ஆங்கிலம்)'], birthplaceTa: ['Home town or village (Tamil)', 'சொந்த ஊர் (தமிழ்)'], birthplacePh: ['e.g. Point Pedro', 'எ.கா. பருத்தித்துறை'],
   livedInEn: ['Lived in (English)', 'வாழ்ந்த இடம் (ஆங்கிலம்)'], livedInTa: ['Lived in (Tamil)', 'வாழ்ந்த இடம் (தமிழ்)'], livedInPh: ['e.g. Toronto, London', 'எ.கா. ரொறன்ரோ, லண்டன்'],
   mainPhoto: ['Main photo', 'பிரதான புகைப்படம்'], morePhotos: ['More photos (up to 6)', 'மேலும் புகைப்படங்கள் (6 வரை)'], qNotice: ['Notice', 'அறிவித்தல்'],
+  /* sample data */
+  sampleH: ['Sample data is still on the site', 'மாதிரித் தரவு இன்னும் தளத்தில் உள்ளது'],
+  sampleP: ['To show how the site works, it was filled with made-up content: {partners} partners, {projects} projects, {students} students, {events} events, {posts} posts, {notices} notices and {people} sample people. Remove it all when you are ready to add real data.', 'தளம் எவ்வாறு செயல்படுகிறது என்பதைக் காட்ட கற்பனைத் தரவு சேர்க்கப்பட்டது: {partners} பங்காளர்கள், {projects} திட்டங்கள், {students} மாணவர்கள், {events} நிகழ்வுகள், {posts} பதிவுகள், {notices} அறிவித்தல்கள், {people} மாதிரி நபர்கள். உண்மைத் தரவைச் சேர்க்கத் தயாரானதும் அனைத்தையும் நீக்குங்கள்.'],
+  sampleKeep: ['Kept: your admin account, everyone who registered, your settings (colours, prices, commission) and anything real people added. A full backup of the database is saved first.', 'வைத்திருக்கப்படுபவை: உங்கள் நிர்வாகக் கணக்கு, பதிவுசெய்த அனைவரும், உங்கள் அமைப்புகள், உண்மையான நபர்கள் சேர்த்தவை. முதலில் முழுக் காப்புப்பிரதி சேமிக்கப்படும்.'],
+  sampleConfirm: ['Type REMOVE to confirm:', 'உறுதிப்படுத்த REMOVE என்று தட்டச்சு செய்யுங்கள்:'],
+  sampleButton: ['Remove all sample data', 'அனைத்து மாதிரித் தரவையும் நீக்கு'],
+  sampleTypeRemove: ['Type REMOVE in the box to confirm.', 'உறுதிப்படுத்த பெட்டியில் REMOVE என்று தட்டச்சு செய்யுங்கள்.'],
+  sampleNone: ['There is no sample data left.', 'மாதிரித் தரவு எதுவும் இல்லை.'],
+  sampleRemoved: ['Sample data removed. The site is ready for real data. Backup saved as {b}.', 'மாதிரித் தரவு நீக்கப்பட்டது. தளம் உண்மைத் தரவுக்குத் தயார். காப்புப்பிரதி {b} ஆகச் சேமிக்கப்பட்டது.'],
+  testPayBanner: ['Payments are in test mode: no money is taken yet.', 'கொடுப்பனவுகள் சோதனை நிலையில் உள்ளன: இன்னும் பணம் எடுக்கப்படுவதில்லை.'],
   /* tickets */
   owedNow: ['Owed now', 'இப்போது செலுத்த வேண்டியது'],
   buyTickets: ['Buy tickets', 'நுழைவுச்சீட்டு வாங்கு'],
@@ -488,8 +498,7 @@ const DT = {
   'Sri Lanka': 'இலங்கை', 'UK': 'ஐக்கிய இராச்சியம்', 'Canada': 'கனடா', 'India': 'இந்தியா', 'Australia': 'அவுஸ்திரேலியா', 'France': 'பிரான்ஸ்', 'Switzerland': 'சுவிற்சர்லாந்து', 'Germany': 'ஜேர்மனி', 'Norway': 'நோர்வே',
   'Registered charity': 'பதிவுசெய்யப்பட்ட அறக்கட்டளை', 'Local NGO': 'உள்ளூர் அரச சார்பற்ற நிறுவனம்', 'International NGO': 'சர்வதேச அரச சார்பற்ற நிறுவனம்', 'Diaspora organisation': 'புலம்பெயர் அமைப்பு', 'Community group': 'சமூக அமைப்பு / சங்கம்', 'School or faith committee': 'பாடசாலை / சமயக் குழு',
   'Ampara': 'அம்பாறை', 'Anuradhapura': 'அனுராதபுரம்', 'Badulla': 'பதுளை', 'Batticaloa': 'மட்டக்களப்பு', 'Colombo': 'கொழும்பு', 'Galle': 'காலி', 'Gampaha': 'கம்பஹா', 'Hambantota': 'அம்பாந்தோட்டை', 'Jaffna': 'யாழ்ப்பாணம்', 'Kalutara': 'களுத்துறை', 'Kandy': 'கண்டி', 'Kegalle': 'கேகாலை', 'Kilinochchi': 'கிளிநொச்சி', 'Kurunegala': 'குருநாகல்', 'Mannar': 'மன்னார்', 'Matale': 'மாத்தளை', 'Matara': 'மாத்தறை', 'Monaragala': 'மொனராகலை', 'Mullaitivu': 'முல்லைத்தீவு', 'Nuwara Eliya': 'நுவரெலியா', 'Polonnaruwa': 'பொலன்னறுவை', 'Puttalam': 'புத்தளம்', 'Ratnapura': 'இரத்தினபுரி', 'Trincomalee': 'திருகோணமலை', 'Vavuniya': 'வவுனியா',
-  'Malaysia': 'மலேசியா', 'Singapore': 'சிங்கப்பூர்', 'USA': 'அமெரிக்கா', 'New Zealand': 'நியூசிலாந்து', 'Denmark': 'டென்மார்க்', 'Sweden': 'சுவீடன்', 'Netherlands': 'நெதர்லாந்து', 'Belgium': 'பெல்ஜியம்', 'Italy': 'இத்தாலி', 'Ireland': 'அயர்லாந்து', 'Finland': 'பின்லாந்து', 'Austria': 'ஆஸ்திரியா', 'Spain': 'ஸ்பெயின்', 'Mauritius': 'மொரிசியஸ்', 'Réunion': 'ரீயூனியன்', 'Seychelles': 'சீசெல்சு', 'South Africa': 'தென்னாபிரிக்கா', 'Fiji': 'பிஜி', 'Myanmar': 'மியான்மார்', 'Indonesia': 'இந்தோனேசியா', 'Thailand': 'தாய்லாந்து', 'UAE': 'ஐக்கிய அரபு அமீரகம்', 'Qatar': 'கத்தார்', 'Saudi Arabia': 'சவூதி அரேபியா', 'Kuwait': 'குவைத்', 'Oman': 'ஓமான்', 'Bahrain': 'பஹ்ரைன்', 'Guyana': 'கயானா', 'Trinidad and Tobago': 'திரினிடாட் மற்றும் டொபாகோ', 'Guadeloupe': 'குவாதலூப்பு', 'Martinique': 'மர்த்தினிக்கு', 'Japan': 'ஜப்பான்', 'Other country': 'வேறு நாடு', 'Ariyalur': 'அரியலூர்', 'Chengalpattu': 'செங்கல்பட்டு', 'Chennai': 'சென்னை', 'Coimbatore': 'கோயம்புத்தூர்', 'Cuddalore': 'கடலூர்', 'Dharmapuri': 'தருமபுரி', 'Dindigul': 'திண்டுக்கல்', 'Erode': 'ஈரோடு', 'Kallakurichi': 'கள்ளக்குறிச்சி', 'Kanchipuram': 'காஞ்சிபுரம்', 'Kanyakumari': 'கன்னியாகுமரி', 'Karur': 'கரூர்', 'Krishnagiri': 'கிருஷ்ணகிரி', 'Madurai': 'மதுரை', 'Mayiladuthurai': 'மயிலாடுதுறை', 'Nagapattinam': 'நாகப்பட்டினம்', 'Namakkal': 'நாமக்கல்', 'Nilgiris': 'நீலகிரி', 'Perambalur': 'பெரம்பலூர்', 'Pudukkottai': 'புதுக்கோட்டை', 'Ramanathapuram': 'இராமநாதபுரம்', 'Ranipet': 'இராணிப்பேட்டை', 'Salem': 'சேலம்', 'Sivaganga': 'சிவகங்கை', 'Tenkasi': 'தென்காசி', 'Thanjavur': 'தஞ்சாவூர்', 'Theni': 'தேனி', 'Thoothukudi': 'தூத்துக்குடி', 'Tiruchirappalli': 'திருச்சிராப்பள்ளி', 'Tirunelveli': 'திருநெல்வேலி', 'Tirupathur': 'திருப்பத்தூர்', 'Tiruppur': 'திருப்பூர்', 'Tiruvallur': 'திருவள்ளூர்', 'Tiruvannamalai': 'திருவண்ணாமலை', 'Tiruvarur': 'திருவாரூர்', 'Vellore': 'வேலூர்', 'Viluppuram': 'விழுப்புரம்', 'Virudhunagar': 'விருதுநகர்', 'Puducherry': 'புதுச்சேரி',
-  'India (Tamil Nadu and Puducherry)': 'இந்தியா (தமிழ்நாடு, புதுச்சேரி)', 'Other countries': 'ஏனைய நாடுகள்',
+  'Malaysia': 'மலேசியா', 'Singapore': 'சிங்கப்பூர்', 'USA': 'அமெரிக்கா', 'New Zealand': 'நியூசிலாந்து', 'Denmark': 'டென்மார்க்', 'Sweden': 'சுவீடன்', 'Netherlands': 'நெதர்லாந்து', 'Belgium': 'பெல்ஜியம்', 'Italy': 'இத்தாலி', 'Ireland': 'அயர்லாந்து', 'Finland': 'பின்லாந்து', 'Austria': 'ஆஸ்திரியா', 'Spain': 'ஸ்பெயின்', 'Mauritius': 'மொரிசியஸ்', 'Réunion': 'ரீயூனியன்', 'Seychelles': 'சீசெல்சு', 'South Africa': 'தென்னாபிரிக்கா', 'Fiji': 'பிஜி', 'Myanmar': 'மியான்மார்', 'Indonesia': 'இந்தோனேசியா', 'Thailand': 'தாய்லாந்து', 'UAE': 'ஐக்கிய அரபு அமீரகம்', 'Qatar': 'கத்தார்', 'Saudi Arabia': 'சவூதி அரேபியா', 'Kuwait': 'குவைத்', 'Oman': 'ஓமான்', 'Bahrain': 'பஹ்ரைன்', 'Guyana': 'கயானா', 'Trinidad and Tobago': 'திரினிடாட் மற்றும் டொபாகோ', 'Guadeloupe': 'குவாதலூப்பு', 'Martinique': 'மர்த்தினிக்கு', 'Japan': 'ஜப்பான்', 'Other country': 'வேறு நாடு',
 };
 const CAUSES = ['Education', 'Clean water', 'Libraries', 'Livelihoods', 'Agriculture', 'Infrastructure', 'Health', 'Elderly care'];
 const TYPES = ['Registered charity', 'Local NGO', 'International NGO', 'Diaspora organisation', 'Community group', 'School or faith committee'];
@@ -497,13 +506,10 @@ const CATEGORIES = ['Scholarships', 'Teaching', 'School supplies', 'Building', '
 const DISTRICTS = ['Ampara', 'Anuradhapura', 'Badulla', 'Batticaloa', 'Colombo', 'Galle', 'Gampaha', 'Hambantota', 'Jaffna', 'Kalutara', 'Kandy', 'Kegalle', 'Kilinochchi', 'Kurunegala', 'Mannar', 'Matale', 'Matara', 'Monaragala', 'Mullaitivu', 'Nuwara Eliya', 'Polonnaruwa', 'Puttalam', 'Ratnapura', 'Trincomalee', 'Vavuniya'];
 /* Where Tamils live: home countries first, then the diaspora. */
 const COUNTRIES = ['Sri Lanka', 'India', 'Malaysia', 'Singapore', 'UK', 'Canada', 'USA', 'Australia', 'New Zealand', 'France', 'Germany', 'Switzerland', 'Norway', 'Denmark', 'Sweden', 'Netherlands', 'Belgium', 'Italy', 'Ireland', 'Finland', 'Austria', 'Spain', 'Mauritius', 'Réunion', 'Seychelles', 'South Africa', 'Fiji', 'Myanmar', 'Indonesia', 'Thailand', 'UAE', 'Qatar', 'Saudi Arabia', 'Kuwait', 'Oman', 'Bahrain', 'Guyana', 'Trinidad and Tobago', 'Guadeloupe', 'Martinique', 'Japan', 'Other country'];
-/* Where projects, students and spending are: Sri Lanka's districts, Tamil Nadu's districts and Puducherry,
-   and other countries as a whole. AREA_GROUPS drives the grouped dropdown; AREA_COUNTRY says which country an area is in. */
-const TN_DISTRICTS = ['Ariyalur', 'Chengalpattu', 'Chennai', 'Coimbatore', 'Cuddalore', 'Dharmapuri', 'Dindigul', 'Erode', 'Kallakurichi', 'Kanchipuram', 'Kanyakumari', 'Karur', 'Krishnagiri', 'Madurai', 'Mayiladuthurai', 'Nagapattinam', 'Namakkal', 'Nilgiris', 'Perambalur', 'Pudukkottai', 'Ramanathapuram', 'Ranipet', 'Salem', 'Sivaganga', 'Tenkasi', 'Thanjavur', 'Theni', 'Thoothukudi', 'Tiruchirappalli', 'Tirunelveli', 'Tirupathur', 'Tiruppur', 'Tiruvallur', 'Tiruvannamalai', 'Tiruvarur', 'Vellore', 'Viluppuram', 'Virudhunagar', 'Puducherry'];
-const OTHER_AREAS = COUNTRIES.filter((c) => c !== 'Sri Lanka' && c !== 'India');
-const AREA_GROUPS = [['Sri Lanka', DISTRICTS], ['India (Tamil Nadu and Puducherry)', TN_DISTRICTS], ['Other countries', OTHER_AREAS]];
-const AREAS = [...DISTRICTS, ...TN_DISTRICTS, ...OTHER_AREAS];
-const AREA_COUNTRY = (a) => (DISTRICTS.includes(a) ? 'Sri Lanka' : TN_DISTRICTS.includes(a) ? 'India' : a);
+/* Where projects, students and spending are: always in Sri Lanka, by district. Partners themselves can be in any country above. */
+const AREAS = DISTRICTS;
+const AREA_GROUPS = [['Sri Lanka', DISTRICTS]];
+const AREA_COUNTRY = () => 'Sri Lanka';
 
 function makeT(lang) {
   const i = lang === 'ta' ? 1 : 0;
@@ -515,4 +521,4 @@ function makeT(lang) {
 }
 const dt = (s, lang) => (lang === 'ta' && DT[s] ? DT[s] : s);
 
-module.exports = { T, DT, makeT, dt, CAUSES, TYPES, CATEGORIES, DISTRICTS, COUNTRIES, AREAS, AREA_GROUPS, AREA_COUNTRY, TN_DISTRICTS };
+module.exports = { T, DT, makeT, dt, CAUSES, TYPES, CATEGORIES, DISTRICTS, COUNTRIES, AREAS, AREA_GROUPS, AREA_COUNTRY };

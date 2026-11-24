@@ -16,6 +16,7 @@ const { registerTheme } = require('./theme');
 const { registerEmails } = require('./emails');
 const { registerTickets } = require('./tickets');
 const { createOutbox } = require('./outbox');
+const cleanup = require('./cleanup');
 const P = require('./views/pages');
 const M = require('./views/manage');
 
@@ -497,7 +498,15 @@ function createApp(db) {
       .map((r) => ({ ...r, spent: spentOf(r.id), items: db.prepare('SELECT COUNT(*) n FROM expenses WHERE report_id = ?').get(r.id).n, docs: db.prepare('SELECT COUNT(*) n FROM expenses WHERE report_id = ? AND file_id IS NOT NULL').get(r.id).n }));
     const orgs = db.prepare(`SELECT id FROM orgs WHERE status = 'verified'`).all();
     const stats = { partners: orgs.length, late: orgs.filter((o) => isLate(o.id)).length, paid: db.prepare(`SELECT COALESCE(SUM(amount_pence),0) s FROM donations WHERE status = 'paid'`).get().s };
-    page(ctx, { title: ctx.t('adH'), active: 'admin', body: M.admin(ctx, { apps, reports, stats, ...H.adminCommunityQueue() }) });
+    page(ctx, { title: ctx.t('adH'), active: 'admin', body: M.admin(ctx, { apps, reports, stats, sample: cleanup.sampleCounts(db), ...H.adminCommunityQueue() }) });
+  });
+  // Remove the sample data so real data can start (a backup of the database is saved first).
+  route('POST', '/admin/sample-data/remove', (ctx) => {
+    if (!requireAdmin(ctx)) return;
+    if (ctx.body.confirm !== 'REMOVE') return redirect(ctx, '/admin', { kind: 'bad', msg: ctx.t('sampleTypeRemove') });
+    if (!cleanup.sampleCounts(db)) return redirect(ctx, '/admin', { kind: 'warn', msg: ctx.t('sampleNone') });
+    const r = cleanup.removeSampleData(db, ctx.user.id);
+    redirect(ctx, '/admin', { kind: 'good', msg: ctx.t('sampleRemoved', { b: r.backup || '—' }) });
   });
   route('GET', '/admin/applications/:id', (ctx) => {
     if (!requireAdmin(ctx)) return;
@@ -643,6 +652,7 @@ function createApp(db) {
       ctx.big = cookies.big === '1';
       ctx.themeCss = H.themeCss ? H.themeCss() : '';
       ctx.autoDark = H.theme ? !H.theme().light : false;
+      ctx.sampleRemoved = cleanup.isRemoved(db);
       ctx.mode = cookies.mode === 'dark' || cookies.mode === 'light' ? cookies.mode : '';
       if (req.method === 'POST') {
         const type = req.headers['content-type'] || '';

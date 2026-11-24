@@ -53,7 +53,7 @@ ${og && og.image ? h`<meta property="og:image" content="${absUrl(ctx, og.image)}
 <script src="/static/share.js?v=${stamp['share.js']}" defer></script>
 </head>
 <body>
-${process.env.DEMO_MODE === '1' ? h`<div class="demo">${t('demoBanner')}</div>` : ''}
+${process.env.DEMO_MODE === '1' ? h`<div class="demo">${t(ctx.sampleRemoved ? 'testPayBanner' : 'demoBanner')}</div>` : ''}
 <header class="bar"><div class="bar-in">
   <a class="logo" href="/"><img src="/static/logo.svg" alt="" width="32" height="32"><span><b>${t('brand')}</b><small>${t('tagline')}</small></span></a>
   <nav class="nav" aria-label="Main">${nav.map(([href, key, id]) => h`<a href="${href}" class="${active === id ? 'on' : ''}${id === 'dashboard' || id === 'admin' ? ' keep' : ''}">${t(key)}</a>`)}</nav>

@@ -115,6 +115,11 @@ function admin(ctx, d) {
     <div class="card pad"><div class="small muted">${t('donationsPaid')}</div><b class="num mid">${gbp(d.stats.paid)}</b></div>
     <div class="card pad"><div class="small muted">${t('lateReports')}</div><b class="num mid">${d.stats.late}</b></div>
   </section>${adminTabs(ctx, 'queue')}
+  ${d.sample ? h`<section class="card pad stack sample-box"><h2>${t('sampleH')}</h2>
+    <p class="small">${t('sampleP', d.sample)}</p>
+    <p class="tiny muted">${t('sampleKeep')}</p>
+    <form method="post" action="/admin/sample-data/remove" class="row">${csrfField(ctx)}<label class="small">${t('sampleConfirm')} <input name="confirm" autocomplete="off" required pattern="REMOVE" placeholder="REMOVE" style="width:120px"></label><button class="btn bad-btn">${t('sampleButton')}</button></form>
+  </section>` : ''}
   <section class="card">
     ${d.apps.map((a) => h`<div class="queue-item"><div><span class="chip plain">${t('qApp')}</span><div><b>${a.name}</b> ${a.name_ta ? h`<span class="muted" lang="ta">${a.name_ta}</span>` : ''}</div><div class="small muted">${dt(a.type, lang)} · ${a.town}, ${dt(a.country, lang)} · ${t('docsUploaded', { n: a.docs })} · ${t('submitted', { d: dateLabel(a.created_at, lang) })}</div></div><a class="btn sm" href="/admin/applications/${a.id}">${t('reviewApp')}</a></div>`)}
     ${d.reports.map((r) => h`<div class="queue-item"><div><span class="chip plain">${t('qReport')}</span><div><b>${L(r, 'org_name', lang)} · ${monthLabel(r.month, lang)}</b></div><div class="small muted">${t('expensesDocs', { n: r.items, a: lkr(r.spent, lang), d: r.docs })}</div></div><a class="btn sm" href="/admin/reports/${r.id}">${t('checkDocs')}</a></div>`)}

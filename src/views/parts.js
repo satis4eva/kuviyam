@@ -83,11 +83,11 @@ function csrfField(ctx) { return h`<input type="hidden" name="_csrf" value="${ct
 function options(list, selected, lang, blank) {
   return h`${blank !== undefined ? h`<option value="">${blank}</option>` : ''}${list.map((x) => h`<option value="${x}"${x === selected ? raw(' selected') : ''}>${dt(x, lang)}</option>`)}`;
 }
-/** Places grouped for a dropdown: Sri Lanka's districts, Tamil Nadu and Puducherry, other countries. */
+/** Districts of Sri Lanka for a dropdown (projects, students and spending are always in Sri Lanka). */
 function areaOptions(selected, lang, blank) {
-  return h`${blank !== undefined ? h`<option value="">${blank}</option>` : ''}${AREA_GROUPS.map(([group, list]) => h`<optgroup label="${dt(group, lang)}">${list.map((x) => h`<option value="${x}"${x === selected ? raw(' selected') : ''}>${dt(x, lang)}</option>`)}</optgroup>`)}`;
+  return h`${blank !== undefined ? h`<option value="">${blank}</option>` : ''}${AREA_GROUPS.map(([, list]) => list.map((x) => h`<option value="${x}"${x === selected ? raw(' selected') : ''}>${dt(x, lang)}</option>`))}`;
 }
-/** "Jaffna, Sri Lanka", "Madurai, India", or just "Malaysia" when the place is a whole country. */
+/** "Jaffna, Sri Lanka". */
 function placeLabel(area, lang) {
   const c = AREA_COUNTRY(area);
   return c === area ? dt(area, lang) : `${dt(area, lang)}, ${dt(c, lang)}`;

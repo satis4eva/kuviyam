@@ -3,9 +3,11 @@ const http = require('node:http');
 const { open } = require('./src/db');
 const { seedDemo, seedCommunity, seedNotices, seedMembers } = require('./src/seed');
 const { createApp } = require('./src/app');
+const { isRemoved } = require('./src/cleanup');
 
 const db = open();
-if (process.env.SEED_DEMO === '1') {
+// Sample data only on a staging site, and never again once an admin has removed it.
+if (process.env.SEED_DEMO === '1' && !isRemoved(db)) {
   if (seedDemo(db)) console.log('Seeded demo data.');
   if (seedCommunity(db)) console.log('Seeded community demo data.');
   if (seedNotices(db)) console.log('Seeded demo notice details.');

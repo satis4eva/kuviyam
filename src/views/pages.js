@@ -265,7 +265,7 @@ function login(ctx, d) {
     <label class="f">${t('password')}<input type="password" name="password" required autocomplete="current-password"></label>
     <button class="btn pri">${t('login')}</button>
     <p class="small">${t('noAccount')} <a href="/register${d.next ? raw('?next=' + encodeURIComponent(d.next)) : ''}">${t('register')}</a></p>
-    ${process.env.DEMO_MODE === '1' && process.env.DEMO_PASSWORD ? h`<p class="tiny muted">${t('demoLogin')} partner@demo.kuviyam.org · ${process.env.DEMO_PASSWORD}</p>` : ''}
+    ${process.env.DEMO_MODE === '1' && process.env.DEMO_PASSWORD && !ctx.sampleRemoved ? h`<p class="tiny muted">${t('demoLogin')} partner@demo.kuviyam.org · ${process.env.DEMO_PASSWORD}</p>` : ''}
   </form></section>`;
 }
 function register(ctx, d) {

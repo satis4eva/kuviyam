@@ -197,9 +197,9 @@ async function step(name, fn) { await fn(); passed++; console.log('  ✓', name)
     const MP4 = Buffer.concat([Buffer.from([0, 0, 0, 0x18]), Buffer.from('ftypmp42'), Buffer.alloc(64)]);
     const partner = new Client(); await partner.get('/login'); await partner.post('/login', { email: 'partner@demo.kuviyam.org', password: 'demo-pass-2026' });
     const member = new Client(); await member.get('/register'); await member.post('/register', { name: 'Ravi Member', email: 'ravi@example.org', password: 'ravi-password-1' });
-    await step('worldwide: diaspora countries and Tamil Nadu districts', async () => {
+    await step('worldwide partners; projects stay in Sri Lanka', async () => {
       const proj = (await partner.get('/dashboard/projects/new')).text;
-      assert.match(proj, /<optgroup label="India \(Tamil Nadu and Puducherry\)">/); assert.match(proj, /value="Thanjavur"/); assert.match(proj, /value="Malaysia"/);
+      assert.match(proj, /value="Jaffna"/); assert.doesNotMatch(proj, /value="Malaysia"|value="Madurai"/);
       assert.match((await member.get('/join?new=1')).text, /value="Mauritius"/);
     });
     await step('community feed shows partner posts in both languages', async () => {
@@ -437,6 +437,30 @@ async function step(name, fn) { await fn(); passed++; console.log('  ✓', name)
       await viewer.get('/mode?set=light&back=/'); assert.doesNotMatch((await viewer.get('/')).text, /<html[^>]*dark/);
       await admin.post('/admin/theme', { reset: '1' });
       assert.doesNotMatch((await anon.get('/')).text, /--brand:#/);
+    });
+    await step('removing sample data keeps real people and their work', async () => {
+      // A real person interacts with sample content first.
+      const real = new Client(); await real.get('/register'); await real.post('/register', { name: 'Real Person', email: 'real@person.org', password: 'real-person-123', next: '/' });
+      await real.get('/me/edit'); await real.postMultipart('/me/edit', { name: 'Real Person', home_town: 'Leeds', bio: 'Real' });
+      const feed = (await real.get('/community')).text; const samplePost = /id="post-(\d+)"/.exec(feed)[1];
+      await real.post(`/community/posts/${samplePost}/like`, {}); await real.post(`/community/posts/${samplePost}/comment`, { body: 'Real comment on a sample post' });
+      assert.match((await admin.get('/admin')).text, /Sample data is still on the site/);
+      assert.equal((await member.post('/admin/sample-data/remove', { confirm: 'REMOVE' })).status, 403);
+      await admin.post('/admin/sample-data/remove', { confirm: 'nope' });
+      assert.match((await anon.get('/partners')).text, /Vanni Learning Trust/); // not confirmed: nothing removed
+      const r = await admin.post('/admin/sample-data/remove', { confirm: 'REMOVE' });
+      assert.equal(r.location, '/admin');
+      const adm = (await admin.get('/admin')).text; assert.match(adm, /Sample data removed/); assert.doesNotMatch(adm, /Sample data is still on the site/);
+      assert.doesNotMatch((await anon.get('/partners')).text, /Vanni Learning Trust|Uva Hill|Jaffna Mobile/);
+      assert.doesNotMatch((await anon.get('/community')).text, /Tharsini|Kavitha/);
+      assert.doesNotMatch((await anon.get('/memorials')).text, /Ponnambalam|1950 – 2026/);
+      assert.doesNotMatch((await anon.get('/members')).text, /Senthil Raj|Meera Sivakumar/);
+      // Real things stay.
+      assert.match((await anon.get('/members?q=Leeds')).text, /Real Person/);
+      assert.match((await real.get('/notifications')).text, /Notifications/);
+      assert.equal((await admin.get('/admin/theme')).status, 200);
+      assert.match((await anon.get('/membership')).text, /£/);
+      assert.match((await anon.get('/')).text, /Payments are in test mode|<html/);
     });
     await step('logout ends the session', async () => {
       await applicant.post('/logout', {});
