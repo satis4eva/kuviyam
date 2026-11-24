@@ -23,6 +23,7 @@ function tierBadge(ctx, tier) {
   return h`<span class="badge ${tier}" title="${ctx.t('tierMember', { t: ctx.t('tier_' + tier) })}">★ ${ctx.t('tier_' + tier)}</span>`;
 }
 function verifiedTag(ctx, org) {
+  if (org.status === 'verified' && org.checked === 0) return h`<span class="chip plain">${ctx.t('notChecked')}</span>`;
   return org.status === 'verified' ? h`<span class="verified">✓ ${ctx.t('verified')}</span>` : h`<span class="chip warn">${ctx.t('verPending')}</span>`;
 }
 

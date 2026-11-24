@@ -20,7 +20,7 @@ function publicList(ctx, d) {
       <button class="btn">${t('search')}</button></form>
     <p class="small muted">${t('dirCount', { n: d.list.length })}</p>
     <div class="grid g3">${d.list.length ? d.list.map((o) => h`<article class="card pad stack6 dir-card">
-        <b>${o.name}</b>${o.status === 'joined' ? h` <span class="chip good">${t('dirOnKuviyam')}</span>` : ''}
+        <b>${o.name}</b>${o.slug ? h` <a class="chip good" href="/partners/${o.slug}">${t('dirPartnerPage')} →</a>` : o.status === 'joined' ? h` <span class="chip good">${t('dirOnKuviyam')}</span>` : ''}
         <span class="small muted">${o.type || ''}</span>
         <span class="small">📍 ${where(o, lang)}</span>
         ${o.address ? h`<span class="small muted">${o.address}</span>` : ''}
@@ -41,6 +41,8 @@ function admin(ctx, d) {
   const total = Object.values(d.totals).reduce((a, n) => a + n, 0);
   return h`<section><h1>${t('adH')}</h1></section>${adminTabs(ctx, 'directory')}
   <section class="grid g4">${['new', 'contacted', 'invited', 'joined'].map((s) => h`<a class="card pad plain" href="/admin/directory?status=${s}"><div class="tiny muted">${t('ds_' + s)}</div><div class="big num">${d.totals[s] || 0}</div></a>`)}</section>
+  ${d.unlinked ? h`<section class="card pad row between"><div><h2>${t('dirMakeAllH')}</h2><p class="small muted">${t('dirMakeAllP', { n: d.unlinked })}</p></div>
+    <form method="post" action="/admin/directory/make-partners">${csrfField(ctx)}<button class="btn pri">${t('dirMakeAllBtn', { n: d.unlinked })}</button></form></section>` : ''}
   <section class="split">
     <div class="stack">
       <form class="row msearch dir-search" method="get" action="/admin/directory"><input name="q" value="${f.q || ''}" placeholder="${t('dirSearchPh')}">
@@ -50,7 +52,8 @@ function admin(ctx, d) {
       <p class="small muted">${t('dirCount', { n: d.list.length })}</p>
       ${d.list.length ? d.list.map((o) => h`<article class="card pad stack6 dir-admin" id="d${o.id}">
         <div class="row between"><div><b>${o.name}</b> ${statusChip(ctx, o.status)}${o.is_public ? '' : h` <span class="chip plain">${t('dirHidden')}</span>`}<div class="tiny muted">${o.type || ''} · ${where(o, lang)}${o.reg_no ? ' · ' + t('dirReg') + ' ' + o.reg_no : ''}</div></div>
-          ${o.email && o.status !== 'joined' ? h`<form method="post" action="/admin/directory/${o.id}/invite">${csrfField(ctx)}<button class="btn sm${o.status === 'invited' ? '' : ' pri'}">✉ ${t(o.status === 'invited' ? 'dirInviteAgain' : 'dirInvite')}</button></form>` : ''}</div>
+          <div class="row">${o.org_id && d.slugs[o.org_id] ? h`<a class="btn sm" href="/partners/${d.slugs[o.org_id]}">${t('dirPartnerPage')} →</a>` : h`<form method="post" action="/admin/directory/${o.id}/make-partner">${csrfField(ctx)}<button class="btn sm">${t('dirMakeOne')}</button></form>`}
+          ${o.email && o.status !== 'joined' ? h`<form method="post" action="/admin/directory/${o.id}/invite">${csrfField(ctx)}<button class="btn sm${o.status === 'invited' ? '' : ' pri'}">✉ ${t(o.status === 'invited' ? 'dirInviteAgain' : 'dirInvite')}</button></form>` : ''}</div></div>
         <div class="small dir-contacts">${o.email ? h`<a href="mailto:${o.email}">✉ ${o.email}</a>` : ''}${o.phone ? h`<span>☎ ${o.phone}</span>` : ''}${o.website ? h`<a href="${o.website}" target="_blank" rel="noopener nofollow">🌐 ${site(o.website)}</a>` : ''}${o.address ? h`<span>📍 ${o.address}</span>` : ''}</div>
         ${o.activity || o.notes || o.verification ? h`<div class="tiny muted">${o.activity ? h`<b>${t('dirActivity')}:</b> ${o.activity}<br>` : ''}${o.notes || ''}${o.verification ? h`<br><i>${o.verification}</i>` : ''}${o.source_url ? h` · <a href="${o.source_url}" target="_blank" rel="noopener nofollow">${t('dirSource')}</a>` : ''}</div>` : ''}
         <form class="row dir-edit" method="post" action="/admin/directory/${o.id}">${csrfField(ctx)}

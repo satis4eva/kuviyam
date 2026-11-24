@@ -493,6 +493,21 @@ async function step(name, fn) { await fn(); passed++; console.log('  ✓', name)
       const again = await admin.postMultipart('/admin/directory/import', { country: 'UK' }, { file: ['list.xlsx', xlsx, 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'] });
       assert.match(decodeURIComponent(admin.jar.flash || ''), /0 new organisations, 2 updated|/);
       assert.match((await admin.get('/admin/directory?status=contacted')).text, /Spoke to the head teacher/); // re-import keeps status and notes
+      // Make them partners: they show on /partners, take donations, say "Not yet checked"; admin can pause donations.
+      assert.equal((await member.post('/admin/directory/make-partners', {})).status, 403);
+      await admin.post('/admin/directory/make-partners', {});
+      const plist = (await anon.get('/partners')).text; assert.match(plist, /Leeds Tamil School/); assert.match(plist, /Not yet checked/); assert.doesNotMatch(plist, /Leeds Tamil School[\s\S]{0,800}Report late/);
+      const slug = /href="\/partners\/(leeds-tamil-school[^"]*)"/.exec(plist)[1];
+      const pp = (await anon.get(`/partners/${slug}`)).text; assert.match(pp, /0113 000 0000/); assert.match(pp, /kind=org/);
+      const oid = /kind=org&amp;id=(\d+)/.exec(pp)[1];
+      assert.equal((await anon.get(`/donate?kind=org&id=${oid}`)).status, 200);
+      await admin.post(`/admin/partners/${oid}/flags`, { donations_paused: '1' });
+      assert.match((await anon.get(`/partners/${slug}`)).text, /paused/);
+      assert.notEqual((await anon.get(`/donate?kind=org&id=${oid}`)).status, 200);
+      await admin.post(`/admin/partners/${oid}/flags`, { checked: '1' });
+      assert.match((await anon.get(`/partners/${slug}`)).text, /✓ Verified/);
+      await admin.post('/admin/directory/make-partners', {}); // running again adds nothing twice
+      assert.equal(((await anon.get('/partners')).text.match(/Leeds Tamil School<\/h3>/g) || []).length, 1);
     });
     await step('removing sample data keeps real people and their work', async () => {
       // A real person interacts with sample content first.

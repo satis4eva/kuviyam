@@ -15,12 +15,47 @@ const { nowIso, clean } = require('./util');
 const { readXlsx, excelDate } = require('./xlsx');
 const { audit } = require('./db');
 const { COUNTRIES } = require('./i18n');
+const { slugify } = require('./util');
 
 const STATUSES = ['new', 'contacted', 'invited', 'joined', 'declined'];
 const norm = (s) => String(s || '').toLowerCase().replace(/[^a-z0-9஀-௿]+/g, ' ').trim();
 const pick = (headers, ...names) => { for (const n of names) { const i = headers.findIndex((h) => norm(h).startsWith(norm(n))); if (i >= 0) return i; } return -1; };
 const webUrl = (v) => { const s = String(v || '').trim(); if (!s) return null; try { const u = new URL(/^https?:\/\//i.test(s) ? s : 'https://' + s); return /^https?:$/.test(u.protocol) ? u.href.slice(0, 300) : null; } catch { return null; } };
 const firstEmail = (v) => (String(v || '').match(/[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}/) || [])[0] || null;
+
+/* Directory entry -> partner. Type and cause are a best guess from the sheet's free-text "Type". */
+function guessType(o) {
+  const x = `${o.type} ${o.name}`.toLowerCase();
+  if (/school|temple|kovil|church|mosque|faith|religious|mandir|amman|murugan|vinayagar|pillaiyar/.test(x)) return 'School or faith committee';
+  if (o.reg_no && /^\s*\d{6,8}\b/.test(o.reg_no) && o.country === 'UK') return 'Registered charity';
+  if (/charity|trust|foundation|relief/.test(x)) return o.country === 'Sri Lanka' ? 'Local NGO' : 'Registered charity';
+  if (/ngo|humanitarian|development/.test(x)) return o.country === 'Sri Lanka' ? 'Local NGO' : 'International NGO';
+  if (o.country !== 'Sri Lanka') return 'Diaspora organisation';
+  return 'Community group';
+}
+function guessCause(o) {
+  const x = `${o.type} ${o.name} ${o.activity} ${o.notes}`.toLowerCase();
+  if (/school|education|tuition|scholar|student|learning|academy|language|class/.test(x)) return 'Education';
+  if (/health|medical|hospital|clinic|disab/.test(x)) return 'Health';
+  if (/elder|senior|aged/.test(x)) return 'Elderly care';
+  if (/library|book/.test(x)) return 'Libraries';
+  if (/water|well/.test(x)) return 'Clean water';
+  if (/farm|agri|fisher/.test(x)) return 'Agriculture';
+  return 'Livelihoods';
+}
+const COLORS = ['#0D6B5B', '#2E6FA8', '#8A4FB0', '#B5542D', '#9C7A12', '#4C7D2C', '#A0446B', '#3F5FA0'];
+/** Make a directory entry a partner (visible on /partners and able to take donations). Returns the org id. */
+function makePartner(db, o) {
+  if (o.org_id && db.prepare('SELECT 1 FROM orgs WHERE id = ?').get(o.org_id)) return o.org_id;
+  const base = slugify(o.name) || `partner-${o.id}`; let slug = base; let n = 2;
+  while (db.prepare('SELECT 1 FROM orgs WHERE slug = ?').get(slug)) slug = `${base}-${n++}`;
+  const about = [o.type, o.activity, o.notes].filter(Boolean).join('. ').slice(0, 1500) || null;
+  const id = Number(db.prepare(`INSERT INTO orgs (slug, name, type, country, place, cause, about, status, color, contact_email, phone, website, address, reg_no, source_url, directory_id, checked, created_at)
+    VALUES (?, ?, ?, ?, ?, ?, ?, 'verified', ?, ?, ?, ?, ?, ?, ?, ?, 0, ?)`)
+    .run(slug, o.name, guessType(o), o.country, o.area || o.country, guessCause(o), about, COLORS[o.id % COLORS.length], o.email, o.phone, o.website, o.address, o.reg_no, o.source_url, o.id, nowIso()).lastInsertRowid);
+  db.prepare(`UPDATE directory_orgs SET org_id = ?, updated_at = ? WHERE id = ?`).run(id, nowIso(), o.id);
+  return id;
+}
 
 /** Turn one workbook into organisations and events. */
 function parseWorkbook(buf, country) {
@@ -115,7 +150,9 @@ function registerDirectory(route, H) {
     const totals = Object.fromEntries(db.prepare('SELECT status, COUNT(*) n FROM directory_orgs GROUP BY status').all().map((r) => [r.status, r.n]));
     const countries = db.prepare('SELECT country, COUNT(*) n FROM directory_orgs GROUP BY country ORDER BY n DESC').all();
     const events = db.prepare('SELECT * FROM directory_events ORDER BY on_date IS NULL, on_date, title').all();
-    page(ctx, { title: ctx.t('tDirectory'), active: 'admin', body: D().admin(ctx, { list, totals, countries, events, f, statuses: STATUSES, allCountries: COUNTRIES }) });
+    const unlinked = db.prepare('SELECT COUNT(*) n FROM directory_orgs WHERE org_id IS NULL OR org_id NOT IN (SELECT id FROM orgs)').get().n;
+    const slugs = Object.fromEntries(db.prepare('SELECT id, slug FROM orgs WHERE directory_id IS NOT NULL').all().map((r) => [r.id, r.slug]));
+    page(ctx, { title: ctx.t('tDirectory'), active: 'admin', body: D().admin(ctx, { unlinked, slugs, list, totals, countries, events, f, statuses: STATUSES, allCountries: COUNTRIES }) });
   });
   route('POST', '/admin/directory/import', (ctx) => {
     if (!requireAdmin(ctx)) return;
@@ -130,6 +167,14 @@ function registerDirectory(route, H) {
     redirect(ctx, `/admin/directory?country=${encodeURIComponent(country)}`, { kind: 'good', msg: ctx.t('dirImported', { a: n.added, u: n.updated, e: n.events, c: ctx.t(country) === country ? country : country }) });
   });
   const dirOrg = (id) => { const o = db.prepare('SELECT * FROM directory_orgs WHERE id = ?').get(Number(id)); if (!o) throw new HttpError(404); return o; };
+  // Make every directory entry (or one) a partner.
+  route('POST', '/admin/directory/make-partners', (ctx) => {
+    if (!requireAdmin(ctx)) return;
+    let n = 0;
+    tx(() => { for (const o of db.prepare('SELECT * FROM directory_orgs WHERE org_id IS NULL OR org_id NOT IN (SELECT id FROM orgs) ORDER BY id').all()) { makePartner(db, o); n++; } });
+    audit(db, ctx.user.id, 'directory-make-partners', String(n));
+    redirect(ctx, '/admin/directory', { kind: 'good', msg: ctx.t('dirMadePartners', { n }) });
+  });
   route('POST', '/admin/directory/:id', (ctx) => {
     if (!requireAdmin(ctx)) return;
     const o = dirOrg(ctx.params.id); const b = ctx.body;
@@ -137,6 +182,13 @@ function registerDirectory(route, H) {
     db.prepare('UPDATE directory_orgs SET status = ?, admin_note = ?, is_public = ?, updated_at = ? WHERE id = ?')
       .run(status, clean(b.admin_note, 600) || null, b.is_public === '1' ? 1 : 0, nowIso(), o.id);
     redirect(ctx, H.back(ctx, '/admin/directory') + `#d${o.id}`);
+  });
+  route('POST', '/admin/directory/:id/make-partner', (ctx) => {
+    if (!requireAdmin(ctx)) return;
+    const o = db.prepare('SELECT * FROM directory_orgs WHERE id = ?').get(Number(ctx.params.id)); if (!o) throw new HttpError(404);
+    const id = tx(() => makePartner(db, o));
+    const slug = db.prepare('SELECT slug FROM orgs WHERE id = ?').get(id).slug;
+    redirect(ctx, `/partners/${slug}`, { kind: 'good', msg: ctx.t('dirMadePartners', { n: 1 }) });
   });
   // Invitation email: "join Kuviyam as a partner". Marks the organisation as invited.
   route('POST', '/admin/directory/:id/invite', (ctx) => {
@@ -162,10 +214,10 @@ function registerDirectory(route, H) {
     const where = ['is_public = 1']; const args = [];
     if (f.q) { where.push('(name LIKE ? OR area LIKE ? OR type LIKE ? OR address LIKE ? OR activity LIKE ?)'); args.push(...Array(5).fill(`%${f.q}%`)); }
     if (f.country) { where.push('country = ?'); args.push(f.country); }
-    const list = db.prepare(`SELECT id, name, type, country, area, address, email, phone, website, reg_no, activity, event_date, notes, source_url, verification, status FROM directory_orgs WHERE ${where.join(' AND ')} ORDER BY name LIMIT 500`).all(...args);
+    const list = db.prepare(`SELECT id, name, type, country, area, address, email, phone, website, reg_no, activity, event_date, notes, source_url, verification, status, (SELECT slug FROM orgs WHERE orgs.id = directory_orgs.org_id) AS slug FROM directory_orgs WHERE ${where.join(' AND ')} ORDER BY name LIMIT 500`).all(...args);
     const countries = db.prepare('SELECT country, COUNT(*) n FROM directory_orgs WHERE is_public = 1 GROUP BY country ORDER BY n DESC').all();
     page(ctx, { title: ctx.t('dirH'), active: 'community', body: D().publicList(ctx, { list, countries, f }) });
   });
 }
 
-module.exports = { registerDirectory, parseWorkbook };
+module.exports = { makePartner, registerDirectory, parseWorkbook };

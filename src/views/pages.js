@@ -145,16 +145,24 @@ function partners(ctx, d) {
     <p class="small muted mb">${t('nShowing', { n: d.list.length, total: d.total })}</p>
     ${d.list.length ? '' : h`<div class="empty card">${t('noMatch')}</div>`}
     <div class="grid g2">${d.list.map((o) => h`<a class="card pad stack plain" href="/partners/${o.slug}">
-      <div class="row nowrap">${avatar(o)}<div><h3>${L(o, 'name', lang)}</h3><div class="small muted">${dt(o.place, lang)}, ${dt(o.country, lang)} · ${t('since', { y: o.since || '' })}</div></div></div>
+      <div class="row nowrap">${avatar(o)}<div><h3>${L(o, 'name', lang)}</h3><div class="small muted">${dt(o.place, lang) === dt(o.country, lang) ? dt(o.country, lang) : `${dt(o.place, lang)}, ${dt(o.country, lang)}`}${o.since ? ' · ' + t('since', { y: o.since }) : ''}</div></div></div>
       <p class="small">${L(o, 'about', lang)}</p>
       <div class="row"><span class="chip">${dt(o.cause, lang)}</span><span class="chip plain">${dt(o.type, lang)}</span>${verifiedTag(ctx, o)}<span class="chip plain">${t('nProjects', { n: o.projects })}</span>${o.late ? h`<span class="chip warn">${t('reportLate')}</span>` : ''}</div></a>`)}</div></section>`;
 }
 
 function partner(ctx, d) {
-  const { t, lang } = ctx; const o = d.org;
+  const { t, lang, user } = ctx; const o = d.org;
+  const site = String(o.website || '').replace(/^https?:\/\/(www\.)?/, '').replace(/\/$/, '');
+  const contacts = [o.phone && h`<span>☎ ${o.phone}</span>`, o.contact_email && h`<a href="mailto:${o.contact_email}">✉ ${o.contact_email}</a>`, o.website && h`<a href="${o.website}" target="_blank" rel="noopener nofollow">🌐 ${site}</a>`, o.address && h`<span>📍 ${o.address}</span>`, o.reg_no && h`<span>${t('dirReg')} ${o.reg_no}</span>`].filter(Boolean);
   return h`<section class="card pad row top">${avatar(o, true)}
-    <div class="stack grow"><h1>${L(o, 'name', lang)}</h1><div class="row small muted">${dt(o.type, lang)} · ${dt(o.place, lang)}, ${dt(o.country, lang)} · ${dt(o.cause, lang)} · ${t('since', { y: o.since || '' })} ${verifiedTag(ctx, o)}</div><p>${L(o, 'about', lang)}</p></div>
-    <div class="stack"><div class="row"><a class="btn give" href="/donate?kind=org&amp;id=${o.id}">${t('donate')}</a><a class="btn" href="/transparency/${o.slug}">${t('monthlySpend')}</a></div>${shareBar(ctx, `/partners/${o.slug}`, L(o, 'name', lang))}</div></section>
+    <div class="stack grow"><h1>${L(o, 'name', lang)}</h1><div class="row small muted">${dt(o.type, lang)} · ${dt(o.place, lang) === dt(o.country, lang) ? dt(o.country, lang) : `${dt(o.place, lang)}, ${dt(o.country, lang)}`} · ${dt(o.cause, lang)}${o.since ? ' · ' + t('since', { y: o.since }) : ''} ${verifiedTag(ctx, o)}</div><p>${L(o, 'about', lang)}</p>
+      ${contacts.length ? h`<div class="small dir-contacts">${contacts}</div>` : ''}
+      ${o.checked === 0 ? h`<p class="tiny muted">${t('pFromPublic')}${o.source_url ? h` <a href="${o.source_url}" target="_blank" rel="noopener nofollow">${t('dirSource')} ↗</a>` : ''}</p>` : ''}</div>
+    <div class="stack"><div class="row">${o.donations_paused ? h`<span class="chip warn">${t('pDonationsPaused')}</span>` : h`<a class="btn give" href="/donate?kind=org&amp;id=${o.id}">${t('donate')}</a>`}<a class="btn" href="/transparency/${o.slug}">${t('monthlySpend')}</a></div>${shareBar(ctx, `/partners/${o.slug}`, L(o, 'name', lang))}</div></section>
+  ${user && user.role === 'admin' ? h`<form class="card pad row" method="post" action="/admin/partners/${o.id}/flags">${csrfField(ctx)}<b>${t('pAdminH')}</b>
+    <label class="small"><input type="checkbox" name="checked" value="1"${o.checked !== 0 ? raw(' checked') : ''}> ${t('pChecked')}</label>
+    <label class="small"><input type="checkbox" name="donations_paused" value="1"${o.donations_paused ? raw(' checked') : ''}> ${t('pPaused')}</label>
+    <button class="btn sm">${t('save')}</button></form>` : ''}
   <section><h2 class="mb">${t('projects')}</h2><div class="grid g3">${d.projects.length ? d.projects.map((p) => projectCard(ctx, p)) : h`<div class="empty">${t('noProjects')}</div>`}</div></section>
   ${d.students.length ? h`<section><h2 class="mb">${t('sponsorH')}</h2><div class="grid g3">${d.students.map((s) => studentCard(ctx, s, o))}</div></section>` : ''}`;
 }
