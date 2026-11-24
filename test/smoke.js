@@ -509,6 +509,9 @@ async function step(name, fn) { await fn(); passed++; console.log('  ✓', name)
       await admin.post('/admin/directory/make-partners', {}); // running again adds nothing twice
       assert.equal(((await anon.get('/partners')).text.match(/Leeds Tamil School<\/h3>/g) || []).length, 1);
     });
+    await step('obituaries page links to other Tamil notice sites', async () => {
+      const m = (await anon.get('/memorials')).text; assert.match(m, /More notices from the Tamil community/); assert.match(m, /https:\/\/ripbook\.com\//); assert.match(m, /rip\.page/);
+    });
     await step('removing sample data keeps real people and their work', async () => {
       // A real person interacts with sample content first.
       const real = new Client(); await real.get('/register'); await real.post('/register', { name: 'Real Person', email: 'real@person.org', password: 'real-person-123', next: '/' });

@@ -450,3 +450,5 @@ pre.code{background:var(--bg);border:1px solid var(--line);border-radius:10px;pa
 .dir-ev{display:flex;gap:8px;align-items:center;justify-content:space-between;border-top:1px solid var(--line);padding-top:8px}
 .msearch select{padding:9px;border:1px solid var(--line);border-radius:9px;background:var(--surface)}
 .dir-search{max-width:none}.dir-search input{min-width:200px}
+
+.rip-more{margin-top:18px}.rip-site{display:flex;flex-direction:column;gap:4px}

@@ -157,8 +157,16 @@ function memorials(ctx, d) {
     <div class="notices">${d.list.length ? d.list.map((m) => h`<a class="card notice plain" href="/memorials/${m.id}#notice-${m.notice_id}">
       <span class="nphoto">${m.file_id ? h`<img src="/files/${m.file_id}" alt="" loading="lazy">` : h`<span class="nph">${String(L(m, 'name', lang)).slice(0, 1)}</span>`}</span>
       <span class="stack6 grow0">${typeChip(ctx, m.type)}<b class="nname">${L(m, 'name', lang)}</b><span class="small muted">${m.years}</span><span class="small">${places(ctx, m)}</span>
-        <span class="tiny muted">${timeAgo(ctx, m.notice_at)} · 🕯️ ${m.candles} · ${t('tributesN', { n: m.messages })}</span></span></a>`) : h`<div class="empty">${t('noMemorials')}</div>`}</div>`;
+        <span class="tiny muted">${timeAgo(ctx, m.notice_at)} · 🕯️ ${m.candles} · ${t('tributesN', { n: m.messages })}</span></span></a>`) : h`<div class="empty">${t('noMemorials')}</div>`}</div>
+    <section class="card pad stack6 rip-more"><h2>${t('ripMoreH')}</h2><p class="small muted">${t('ripMoreP')}</p>
+      <div class="grid g2">${RIP_SITES.map((x) => h`<a class="card pad plain rip-site" href="${x.url}" target="_blank" rel="noopener nofollow"><b>${x.name} ↗</b><span class="small muted">${t(x.key)}</span></a>`)}</div>
+      <p class="small">${t('ripFreeHere')} <a href="/memorials/new">${t('postNotice')} →</a></p></section>`;
 }
+/* Other Tamil notice sites. Kuviyam links to them and copies nothing from them. */
+const RIP_SITES = [
+  { name: 'RIPBook', url: 'https://ripbook.com/', key: 'ripSiteRipbook' },
+  { name: 'RIP Page', url: 'https://rip.page/en', key: 'ripSiteRippage' }
+];
 
 function memorial(ctx, d) {
   const { t, lang } = ctx; const m = d.m; const age = ageAt(m.born_on, m.died_on);
