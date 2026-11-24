@@ -85,7 +85,7 @@ function registerCommunity(route, H) {
     const list = db.prepare(`SELECT e.*, o.name AS org_name, o.name_ta AS org_name_ta, o.slug AS org_slug FROM events e JOIN orgs o ON o.id = e.org_id
       WHERE e.status = 'live' AND o.status = 'verified' AND e.starts_on >= ? ORDER BY e.starts_on`).all(today());
     const mine = new Set(ctx.user ? db.prepare('SELECT event_id FROM rsvps WHERE user_id = ?').all(ctx.user.id).map((r) => r.event_id) : []);
-    page(ctx, { title: ctx.t('eventsH'), active: 'community', body: C.events(ctx, { list: list.map((e) => ({ ...e, going_me: mine.has(e.id) })) }) });
+    page(ctx, { title: ctx.t('eventsH'), active: 'community', body: C.events(ctx, { list: list.map((e) => ({ ...e, going_me: mine.has(e.id) })), community: H.directoryEvents ? H.directoryEvents() : [] }) });
   });
   const liveEvent = (ctx, id) => {
     const e = db.prepare(`SELECT e.*, o.name AS org_name, o.name_ta AS org_name_ta, o.slug AS org_slug, o.color AS org_color FROM events e JOIN orgs o ON o.id = e.org_id

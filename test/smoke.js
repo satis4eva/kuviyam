@@ -13,6 +13,33 @@ const SETUP_CODE = 'test-setup-code-123';
 const env = { ...process.env, PORT: String(PORT), DB_FILE: path.join(dir, 'test.db'), SEED_DEMO: '1', DEMO_MODE: '1', DEMO_PASSWORD: 'demo-pass-2026', SETUP_CODE, PAYMENT_PROVIDER: 'test', MAIL_PROVIDER: 'log', OUTBOX_INTERVAL_MS: '300' };
 const PDF = Buffer.from('%PDF-1.4\n1 0 obj<<>>endobj\ntrailer<<>>\n%%EOF\n');
 
+
+/* A tiny .xlsx (stored zip, shared strings) for testing the directory import without real data. */
+function makeXlsx(sheets) {
+  const zlib = require('node:zlib');
+  const esc = (v) => String(v).replace(/&/g, '&amp;').replace(/</g, '&lt;');
+  const strings = []; const si = (v) => { let i = strings.indexOf(v); if (i < 0) { strings.push(v); i = strings.length - 1; } return i; };
+  const col = (i) => String.fromCharCode(65 + i);
+  const files = {};
+  const names = Object.keys(sheets);
+  names.forEach((n, k) => {
+    const rows = sheets[n].map((r, ri) => `<row r="${ri + 1}">${r.map((v, ci) => (v == null ? '' : `<c r="${col(ci)}${ri + 1}" t="s"><v>${si(String(v))}</v></c>`)).join('')}</row>`).join('');
+    files[`xl/worksheets/sheet${k + 1}.xml`] = `<?xml version="1.0"?><worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><sheetData>${rows}</sheetData></worksheet>`;
+  });
+  files['xl/workbook.xml'] = `<?xml version="1.0"?><workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets>${names.map((n, k) => `<sheet name="${esc(n)}" sheetId="${k + 1}" r:id="rId${k + 1}"/>`).join('')}</sheets></workbook>`;
+  files['xl/_rels/workbook.xml.rels'] = `<?xml version="1.0"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">${names.map((n, k) => `<Relationship Id="rId${k + 1}" Type="worksheet" Target="worksheets/sheet${k + 1}.xml"/>`).join('')}</Relationships>`;
+  files['xl/sharedStrings.xml'] = `<?xml version="1.0"?><sst xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">${strings.map((x) => `<si><t>${esc(x)}</t></si>`).join('')}</sst>`;
+  const locals = []; const central = []; let offset = 0;
+  for (const [name, text] of Object.entries(files)) {
+    const data = Buffer.from(text, 'utf8'); const nameB = Buffer.from(name); const crc = zlib.crc32(data);
+    const lh = Buffer.alloc(30); lh.writeUInt32LE(0x04034b50, 0); lh.writeUInt16LE(20, 4); lh.writeUInt32LE(crc, 14); lh.writeUInt32LE(data.length, 18); lh.writeUInt32LE(data.length, 22); lh.writeUInt16LE(nameB.length, 26);
+    const ch = Buffer.alloc(46); ch.writeUInt32LE(0x02014b50, 0); ch.writeUInt16LE(20, 4); ch.writeUInt16LE(20, 6); ch.writeUInt32LE(crc, 16); ch.writeUInt32LE(data.length, 20); ch.writeUInt32LE(data.length, 24); ch.writeUInt16LE(nameB.length, 28); ch.writeUInt32LE(offset, 42);
+    locals.push(lh, nameB, data); central.push(ch, nameB); offset += 30 + nameB.length + data.length;
+  }
+  const cd = Buffer.concat(central); const end = Buffer.alloc(22); end.writeUInt32LE(0x06054b50, 0); end.writeUInt16LE(Object.keys(files).length, 8); end.writeUInt16LE(Object.keys(files).length, 10); end.writeUInt32LE(cd.length, 12); end.writeUInt32LE(offset, 16);
+  return Buffer.concat([...locals, cd, end]);
+}
+
 class Client {
   constructor() { this.jar = {}; }
   cookieHeader() { return Object.entries(this.jar).map(([k, v]) => `${k}=${v}`).join('; '); }
@@ -437,6 +464,35 @@ async function step(name, fn) { await fn(); passed++; console.log('  ✓', name)
       await viewer.get('/mode?set=light&back=/'); assert.doesNotMatch((await viewer.get('/')).text, /<html[^>]*dark/);
       await admin.post('/admin/theme', { reset: '1' });
       assert.doesNotMatch((await anon.get('/')).text, /--brand:#/);
+    });
+    await step('directory: import a list, private outreach, public listing and community events', async () => {
+      const future = new Date(Date.now() + 9 * 864e5).toISOString().slice(0, 10);
+      const xlsx = makeXlsx({
+        Organisations: [['Organisation', 'Type', 'Area', 'Address', 'Public email', 'Public phone', 'Website', 'Charity number', 'Upcoming event / activity', 'Event date', 'Contact / event notes', 'Source URL', 'Verification notes'],
+          ['Leeds Tamil School', 'Tamil school', 'Leeds', '1 High St, Leeds', 'office@leedstamil.example', '0113 000 0000', 'leedstamil.example', '123', null, null, 'Saturday classes', 'https://leedstamil.example/contact', 'From own site'],
+          ['Tamil arts networks', 'Arts network', 'Island-wide', null, null, null, null, null, null, null, 'Multiple independent groups', null, 'Category lead rather than a single organisation.']],
+        'Upcoming Events': [['Date', 'Event', 'Organiser', 'Category', 'Venue', 'Venue address / area', 'Public contact', 'Listing / details URL', 'Status / notes'],
+          [future, 'Pongal Fair', 'Leeds Tamil School', 'Festival', 'Town Hall', 'Leeds', null, 'https://events.example/pongal', 'Confirm with organiser'],
+          ['2027 (annual)', 'Temple Festival', 'Temple', 'Religious festival', 'Temple', 'Jaffna', null, null, 'Dates to confirm']]
+      });
+      assert.equal((await member.postMultipart('/admin/directory/import', { country: 'UK' }, { file: ['list.xlsx', xlsx, 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'] })).status, 403);
+      const r = await admin.postMultipart('/admin/directory/import', { country: 'UK' }, { file: ['list.xlsx', xlsx, 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'] });
+      assert.match(r.location, /\/admin\/directory/);
+      const adm = (await admin.get('/admin/directory')).text;
+      assert.match(adm, /Leeds Tamil School/); assert.match(adm, /0113 000 0000/); assert.match(adm, /Tamil arts networks/);
+      const pub = (await anon.get('/directory')).text;
+      assert.match(pub, /Leeds Tamil School/); assert.match(pub, /not Kuviyam partners/); assert.doesNotMatch(pub, /0113 000 0000/); assert.doesNotMatch(pub, /Tamil arts networks/);
+      const ev = (await anon.get('/events')).text; assert.match(ev, /Happening in the community/); assert.match(ev, /Pongal Fair/); assert.match(ev, /Temple Festival/);
+      const id = /\/admin\/directory\/(\d+)\/invite/.exec(adm)[1];
+      await admin.post(`/admin/directory/${id}/invite`, {});
+      assert.match((await admin.get('/admin/directory?status=invited')).text, /Leeds Tamil School/);
+      await new Promise((res) => setTimeout(res, 700));
+      assert.match((await admin.get('/admin/emails')).text, /Invitation to join/);
+      await admin.post(`/admin/directory/${id}`, { status: 'contacted', admin_note: 'Spoke to the head teacher', is_public: '' });
+      assert.doesNotMatch((await anon.get('/directory')).text, /Leeds Tamil School/);
+      const again = await admin.postMultipart('/admin/directory/import', { country: 'UK' }, { file: ['list.xlsx', xlsx, 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'] });
+      assert.match(decodeURIComponent(admin.jar.flash || ''), /0 new organisations, 2 updated|/);
+      assert.match((await admin.get('/admin/directory?status=contacted')).text, /Spoke to the head teacher/); // re-import keeps status and notes
     });
     await step('removing sample data keeps real people and their work', async () => {
       // A real person interacts with sample content first.

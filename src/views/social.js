@@ -183,7 +183,7 @@ function adminTheme(ctx, d) {
 
 function adminEmails(ctx, d) {
   const { t, lang } = ctx; const { adminTabs } = require('./manage');
-  const kinds = { rsvp_confirm: 'mkConfirm', reminder_day: 'mkDay', reminder_hour: 'mkHour', event_msg: 'mkMsg', partner_digest: 'mkDigest', test: 'mkTest' };
+  const kinds = { rsvp_confirm: 'mkConfirm', reminder_day: 'mkDay', reminder_hour: 'mkHour', event_msg: 'mkMsg', partner_digest: 'mkDigest', test: 'mkTest', directory_invite: 'mkInvite', ticket_confirm: 'mkTicket' };
   const chip = (st) => h`<span class="chip ${st === 'sent' ? 'good' : st === 'failed' ? 'bad' : st === 'queued' || st === 'sending' ? 'warn' : 'plain'}">${t('ms_' + st)}</span>`;
   return h`<section><h1>${t('adH')}</h1></section>${adminTabs(ctx, 'emails')}
   <section class="split">

@@ -58,6 +58,13 @@ function createOutbox(db) {
     if (row.kind === 'test') {
       return { subject: 'Kuviyam test email', ...layout({ heading: 'Email is working', headingTa: 'மின்னஞ்சல் செயல்படுகிறது', lines: ['This test was sent from Admin → Emails.'], footer: 'Sent to an admin of Kuviyam.' }) };
     }
+    if (row.kind === 'directory_invite') {
+      return { subject: `An invitation to join Kuviyam`, ...layout({ heading: `${p.name}: join Kuviyam as a partner`, headingTa: 'குவியத்தில் பங்காளராக இணைய அழைப்பு',
+        lines: ['Kuviyam is a platform for Tamil charities and community groups worldwide to raise money for projects in Sri Lanka, share news and events, and show every rupee spent with receipts.',
+          'We found your organisation in public listings and would love to have you. Joining is free: apply online, and once we have checked your details you can list projects, sponsor students, post events and updates.'],
+        button: { label: 'Apply to join', url: `${base()}/join` }, after: ['If this is not the right address, or you would rather not hear from us, just reply and tell us.'],
+        footer: `Sent by ${p.by || 'the Kuviyam team'} on behalf of Kuviyam.` }) };
+    }
     if (row.kind === 'partner_digest') {
       const lines = p.events.map((e) => `<b>${esc(e.title)}</b> (${esc(fmtDate(e.starts_on))}): ${e.added} new, ${e.going} going in total.<br><span style="color:#5A6B72">${esc(e.names.join(', '))}${e.more ? ` and ${e.more} more` : ''}</span>`);
       return { subject: `New RSVPs for ${p.orgName}`, ...layout({ heading: 'New people going to your events', headingTa: 'உங்கள் நிகழ்வுகளுக்கு புதிதாக வருபவர்கள்', lines,

@@ -17,6 +17,7 @@ const { registerEmails } = require('./emails');
 const { registerTickets } = require('./tickets');
 const { createOutbox } = require('./outbox');
 const cleanup = require('./cleanup');
+const { registerDirectory } = require('./directory');
 const P = require('./views/pages');
 const M = require('./views/manage');
 
@@ -614,6 +615,7 @@ function createApp(db) {
   registerSocial(route, H);
   registerTheme(route, H);
   registerEmails(route, H);
+  registerDirectory(route, H);
 
   /* ---------------- request handling ---------------- */
   function serveStatic(ctx) {

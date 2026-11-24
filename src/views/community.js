@@ -15,7 +15,7 @@ const postBtn = (ctx, action, label, cls = '') => h`<form method="post" action="
 const modeLabel = (ctx, e) => ctx.t('m_' + e.mode, { p: e.price || '' }).trim();
 
 function hubTabs(ctx, active) {
-  const items = [['/community', 'tFeed', 'feed'], ['/members', 'tMembers', 'members'], ['/events', 'tEvents', 'events'], ['/memorials', 'tMemorials', 'memorials']];
+  const items = [['/community', 'tFeed', 'feed'], ['/members', 'tMembers', 'members'], ['/events', 'tEvents', 'events'], ['/memorials', 'tMemorials', 'memorials'], ['/directory', 'tDirectory', 'directory']];
   return h`<nav class="tabs" aria-label="${ctx.t('communityH')}">${items.map(([href, k, id]) => h`<a href="${href}" class="${active === id ? 'on' : ''}">${ctx.t(k)}</a>`)}</nav>`;
 }
 
@@ -132,7 +132,8 @@ function events(ctx, d) {
   const isPartner = user && user.orgs.some((o) => o.status === 'verified');
   return h`<section class="sec-h"><div><h1>${t('eventsH')}</h1><p class="muted">${t('eventsP')}</p></div>${isPartner ? h`<a class="btn pri" href="/dashboard/events">${t('listEvent')}</a>` : ''}</section>
     ${hubTabs(ctx, 'events')}
-    <div class="grid g2">${d.list.length ? d.list.map((e) => eventCard(ctx, e)) : h`<div class="empty">${t('noEvents')}</div>`}</div>`;
+    <div class="grid g2">${d.list.length ? d.list.map((e) => eventCard(ctx, e)) : h`<div class="empty">${t('noEvents')}</div>`}</div>
+    ${require('./directory').communityEvents(ctx, d.community || [])}`;
 }
 
 /* ---------------- memorials (notices) ---------------- */
