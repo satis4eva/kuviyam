@@ -186,7 +186,8 @@ function createApp(db) {
   });
 
   route('GET', '/transparency', (ctx) => {
-    const orgs = db.prepare(`SELECT * FROM orgs WHERE status = 'verified' ORDER BY name`).all();
+    // Partners added from the directory appear here only once an admin ticks "Checked by Kuviyam".
+    const orgs = db.prepare(`SELECT * FROM orgs WHERE status = 'verified' AND checked != 0 ORDER BY name`).all();
     const req = requiredReportMonth();
     const rows = orgs.map((o) => {
       const latest = db.prepare(`SELECT * FROM reports WHERE org_id = ? AND status = 'published' ORDER BY month DESC LIMIT 1`).get(o.id);

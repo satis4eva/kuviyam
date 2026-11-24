@@ -501,11 +501,13 @@ async function step(name, fn) { await fn(); passed++; console.log('  ✓', name)
       const pp = (await anon.get(`/partners/${slug}`)).text; assert.match(pp, /0113 000 0000/); assert.match(pp, /kind=org/);
       const oid = /kind=org&amp;id=(\d+)/.exec(pp)[1];
       assert.equal((await anon.get(`/donate?kind=org&id=${oid}`)).status, 200);
+      assert.doesNotMatch((await anon.get('/transparency')).text, /Leeds Tamil School/); // not on Transparency until checked
       await admin.post(`/admin/partners/${oid}/flags`, { donations_paused: '1' });
       assert.match((await anon.get(`/partners/${slug}`)).text, /paused/);
       assert.notEqual((await anon.get(`/donate?kind=org&id=${oid}`)).status, 200);
       await admin.post(`/admin/partners/${oid}/flags`, { checked: '1' });
       assert.match((await anon.get(`/partners/${slug}`)).text, /✓ Verified/);
+      assert.match((await anon.get('/transparency')).text, /Leeds Tamil School/);
       await admin.post('/admin/directory/make-partners', {}); // running again adds nothing twice
       assert.equal(((await anon.get('/partners')).text.match(/Leeds Tamil School<\/h3>/g) || []).length, 1);
     });

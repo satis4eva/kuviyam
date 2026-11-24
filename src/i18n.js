@@ -210,7 +210,7 @@ const T = {
   notChecked: ['Not yet checked', 'இன்னும் சரிபார்க்கப்படவில்லை'],
   partnerFlagsSaved: ['Saved.', 'சேமிக்கப்பட்டது.'],
   pAdminH: ['Admin', 'நிர்வாகம்'],
-  pChecked: ['Checked by Kuviyam (shows the Verified tick)', 'குவியம் சரிபார்த்தது (சரிபார்க்கப்பட்டது குறி காட்டும்)'],
+  pChecked: ['Checked by Kuviyam (shows the Verified tick and lists them on Transparency)', 'குவியம் சரிபார்த்தது (சரிபார்க்கப்பட்டது குறியும் வெளிப்படைத்தன்மைப் பக்கத்தில் பட்டியலும்)'],
   pPaused: ['Pause donations to this partner', 'இப்பங்காளருக்கான நன்கொடைகளை இடைநிறுத்து'],
   pDonationsPaused: ['Donations to this partner are paused for now.', 'இப்பங்காளருக்கான நன்கொடைகள் தற்போது இடைநிறுத்தப்பட்டுள்ளன.'],
   pFromPublic: ['Details from public sources. Kuviyam has not checked this organisation yet.', 'பொது மூலங்களிலிருந்து விவரங்கள். குவியம் இவ்வமைப்பை இன்னும் சரிபார்க்கவில்லை.'],
