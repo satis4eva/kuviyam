@@ -3,8 +3,8 @@
  * Sending email. Pick one with environment variables (Hostinger hPanel > Node.js > Environment variables):
  *
  *   Hostinger mailbox (or any SMTP):  SMTP_HOST=smtp.hostinger.com  SMTP_PORT=465
- *                                     SMTP_USER=noreply@kuviyam.org  SMTP_PASS=...  MAIL_FROM=noreply@kuviyam.org
- *   Resend:                           RESEND_API_KEY=re_...  MAIL_FROM=noreply@kuviyam.org
+ *                                     SMTP_USER=noreply@kuviyam.net  SMTP_PASS=...  MAIL_FROM=noreply@kuviyam.net
+ *   Resend:                           RESEND_API_KEY=re_...  MAIL_FROM=noreply@kuviyam.net
  *
  * With neither set, emails are written to the app log instead of being sent ("log" mode), so the site
  * works the same while email is being set up. No packages needed: SMTP is spoken directly over TLS.
@@ -19,7 +19,7 @@ function provider() {
   if (process.env.RESEND_API_KEY) return 'resend';
   return 'log';
 }
-const fromAddress = () => process.env.MAIL_FROM || process.env.SMTP_USER || 'noreply@kuviyam.org';
+const fromAddress = () => process.env.MAIL_FROM || process.env.SMTP_USER || 'noreply@kuviyam.net';
 const fromName = () => process.env.MAIL_FROM_NAME || 'Kuviyam';
 
 const b64 = (s) => Buffer.from(s, 'utf8').toString('base64').replace(/.{76}/g, '$&\r\n');

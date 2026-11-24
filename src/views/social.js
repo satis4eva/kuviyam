@@ -197,9 +197,9 @@ function adminEmails(ctx, d) {
         <p class="small">${t('mailHowTo')}</p>
         <pre class="code">SMTP_HOST=smtp.hostinger.com
 SMTP_PORT=465
-SMTP_USER=noreply@kuviyam.org
+SMTP_USER=noreply@kuviyam.net
 SMTP_PASS=…
-MAIL_FROM=noreply@kuviyam.org</pre>
+MAIL_FROM=noreply@kuviyam.net</pre>
         <form method="post" action="/admin/emails/test">${csrfField(ctx)}<button class="btn">${t('sendTest')}</button></form></div>
       <div class="card pad"><div class="tiny muted">${t('ms_sent')}: <b>${d.counts.sent || 0}</b> · ${t('ms_queued')}: <b>${d.counts.queued || 0}</b> · ${t('ms_failed')}: <b>${d.counts.failed || 0}</b></div></div>
     </div>
