@@ -23,8 +23,15 @@ function publicList(ctx, d) {
         <b>${o.name}</b>${o.status === 'joined' ? h` <span class="chip good">${t('dirOnKuviyam')}</span>` : ''}
         <span class="small muted">${o.type || ''}</span>
         <span class="small">📍 ${where(o, lang)}</span>
-        ${o.website ? h`<a class="small" href="${o.website}" target="_blank" rel="noopener nofollow">🌐 ${site(o.website)}</a>` : ''}
+        ${o.address ? h`<span class="small muted">${o.address}</span>` : ''}
+        ${o.phone ? h`<span class="small">☎ ${o.phone}</span>` : ''}
         ${o.email ? h`<a class="small" href="mailto:${o.email}">✉ ${o.email}</a>` : ''}
+        ${o.website ? h`<a class="small" href="${o.website}" target="_blank" rel="noopener nofollow">🌐 ${site(o.website)}</a>` : ''}
+        ${o.reg_no ? h`<span class="tiny muted">${t('dirReg')} ${o.reg_no}</span>` : ''}
+        ${o.activity ? h`<span class="small dir-act">📅 ${o.activity}${o.event_date ? h` · <b>${/^\d{4}-\d{2}-\d{2}$/.test(o.event_date) ? dateLabel(o.event_date, lang) : o.event_date}</b>` : ''}</span>` : ''}
+        ${o.notes ? h`<span class="tiny">${o.notes}</span>` : ''}
+        ${o.verification ? h`<span class="tiny muted">${o.verification}</span>` : ''}
+        ${o.source_url ? h`<a class="tiny" href="${o.source_url}" target="_blank" rel="noopener nofollow">${t('dirSource')} ↗</a>` : ''}
       </article>`) : h`<div class="empty">${t('dirNone')}</div>`}</div>
     <p class="tiny muted">${t('dirCorrections')}</p>`;
 }
@@ -76,6 +83,7 @@ function communityEvents(ctx, list) {
   const row = (e) => h`<div class="card pad row top nowrap dir-evcard">${e.on_date ? h`<span class="date"><b>${+e.on_date.slice(8)}</b><span class="tiny">${dateLabel(e.on_date, lang).replace(/^\d+\s/, '')}</span></span>` : h`<span class="date">🪔</span>`}
     <div class="stack6"><b>${e.title}</b><span class="small muted">${[e.venue, e.area].filter(Boolean).join(', ')}${e.venue || e.area ? ' · ' : ''}${dt(e.country, lang)}${e.category ? ' · ' + e.category : ''}</span>
       ${e.organiser ? h`<span class="small">${t('hostedBy')} ${e.organiser}</span>` : ''}${e.date_text ? h`<span class="tiny muted">${e.date_text}</span>` : ''}
+      ${e.contact ? h`<span class="small">☎ ${e.contact}</span>` : ''}${e.notes ? h`<span class="tiny muted">${e.notes}</span>` : ''}
       ${e.url ? h`<a class="small" href="${e.url}" target="_blank" rel="noopener nofollow">${t('dirEventListing')} ↗</a>` : ''}</div></div>`;
   return h`<section class="stack"><div class="sec-h"><div><h2>${t('dirCommunityH')}</h2><p class="small muted">${t('dirCommunityP')}</p></div></div>
     ${dated.length ? h`<div class="grid g2">${dated.map(row)}</div>` : ''}

@@ -481,7 +481,7 @@ async function step(name, fn) { await fn(); passed++; console.log('  ✓', name)
       const adm = (await admin.get('/admin/directory')).text;
       assert.match(adm, /Leeds Tamil School/); assert.match(adm, /0113 000 0000/); assert.match(adm, /Tamil arts networks/);
       const pub = (await anon.get('/directory')).text;
-      assert.match(pub, /Leeds Tamil School/); assert.match(pub, /not Kuviyam partners/); assert.doesNotMatch(pub, /0113 000 0000/); assert.doesNotMatch(pub, /Tamil arts networks/);
+      assert.match(pub, /Leeds Tamil School/); assert.match(pub, /not Kuviyam partners/); assert.match(pub, /0113 000 0000/); assert.match(pub, /Tamil arts networks/); assert.match(pub, /1 High St, Leeds/); assert.match(pub, /Saturday classes/); assert.match(pub, /Where this came from/);
       const ev = (await anon.get('/events')).text; assert.match(ev, /Happening in the community/); assert.match(ev, /Pongal Fair/); assert.match(ev, /Temple Festival/);
       const id = /\/admin\/directory\/(\d+)\/invite/.exec(adm)[1];
       await admin.post(`/admin/directory/${id}/invite`, {});

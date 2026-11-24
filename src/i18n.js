@@ -201,6 +201,7 @@ const T = {
   dirCommunityH: ['Happening in the community', 'சமூகத்தில் நடைபெறுபவை'],
   dirCommunityP: ['From public event listings, not organised by Kuviyam partners. Check details with the organiser before you go.', 'பொது நிகழ்வுப் பட்டியல்களிலிருந்து; குவியப் பங்காளர்களால் ஏற்பாடு செய்யப்பட்டவை அல்ல. செல்லும் முன் ஏற்பாட்டாளரிடம் உறுதிப்படுத்துங்கள்.'],
   dirAnnualH: ['Annual festivals and celebrations (dates to be confirmed)', 'வருடாந்த விழாக்களும் கொண்டாட்டங்களும் (திகதிகள் உறுதிப்படுத்தப்பட வேண்டும்)'],
+  dirSource: ['Where this came from', 'தகவல் மூலம்'],
   dirEventListing: ['See the listing', 'பட்டியலைப் பார்'],
   mkInvite: ['Invitation to join', 'இணைய அழைப்பு'],
   mkTicket: ['Ticket email', 'சீட்டு மின்னஞ்சல்'],

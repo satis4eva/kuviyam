@@ -4,8 +4,8 @@
  * These are NOT Kuviyam partners: they have not applied, are not checked, and no money is collected for them.
  *   Admin > Directory   private outreach list with every contact detail, a status (new, contacted,
  *                       invited, joined, declined), notes, and an Invite email.
- *   /directory          public list, clearly labelled, showing only organisation-level details
- *                       (name, type, area, website, public email): never phone numbers.
+ *   /directory          public list, clearly labelled, showing every public detail from the
+ *                       sheet (contacts, address, registration, activity, notes, source).
  *   /events             a "Happening in the community" section of the dated public events.
  * Lists come in through Admin > Directory > Import as .xlsx files (Organisations and Upcoming Events
  * sheets), so contact details never go into the code repository. Importing again updates details and
@@ -32,16 +32,16 @@ function parseWorkbook(buf, country) {
     const [hdr, ...rows] = os[1]; const H = hdr.map((x) => String(x || ''));
     const c = { name: pick(H, 'organisation', 'organization', 'name'), type: pick(H, 'type'), area: pick(H, 'district', 'area', 'town', 'city'), address: pick(H, 'address'),
       email: pick(H, 'public email', 'email'), phone: pick(H, 'public phone', 'phone'), website: pick(H, 'website', 'web'), reg: pick(H, 'charity number', 'registration'),
-      activity: pick(H, 'upcoming event'), notes: pick(H, 'contact', 'notes'), source: pick(H, 'source'), verification: pick(H, 'verification') };
+      activity: pick(H, 'upcoming event'), event_date: pick(H, 'event date'), notes: pick(H, 'contact', 'notes'), source: pick(H, 'source'), verification: pick(H, 'verification') };
     const get = (r, k) => (c[k] >= 0 && r[c[k]] != null ? String(r[c[k]]) : null);
     for (const r of rows) {
       const name = clean(get(r, 'name'), 200); if (!name) continue;
       const o = { name, type: clean(get(r, 'type'), 120), area: clean(get(r, 'area'), 160), address: clean(get(r, 'address'), 300), email: firstEmail(get(r, 'email')),
         phone: clean(get(r, 'phone'), 200), website: webUrl(get(r, 'website')), reg_no: clean(get(r, 'reg'), 200), activity: clean(get(r, 'activity'), 300),
+        event_date: (() => { const v = c.event_date >= 0 ? r[c.event_date] : null; return typeof v === 'number' ? excelDate(v) : clean(v == null ? '' : String(v), 120) || null; })(),
         notes: clean(get(r, 'notes'), 600), source_url: webUrl(get(r, 'source')), verification: clean(get(r, 'verification'), 400) };
-      // Hidden from the public list: umbrella "category leads" that are not one organisation. Admins can change it.
-      const lead = /category lead|umbrella|not entered as a single|multiple independent groups/i.test(`${o.verification} ${o.notes}`);
-      o.is_public = lead ? 0 : 1;
+      // Everything is shown publicly; an admin can hide a single entry in Admin → Directory.
+      o.is_public = 1;
       orgs.push(o);
     }
   }
@@ -70,6 +70,13 @@ function registerDirectory(route, H) {
   const { db, page, redirect, requireAdmin, tx, HttpError } = H;
   const D = () => require('./views/directory');
 
+  // One-time: show every imported entry publicly (the first import hid umbrella "category lead" rows).
+  if (!db.prepare(`SELECT 1 FROM settings WHERE key = 'directory_all_public'`).get()) {
+    db.prepare('UPDATE directory_orgs SET is_public = 1').run();
+    db.prepare('UPDATE directory_events SET is_public = 1').run();
+    db.prepare(`INSERT INTO settings (key, value) VALUES ('directory_all_public', ?) ON CONFLICT(key) DO NOTHING`).run(nowIso());
+  }
+
   function importData(data) {
     const now = nowIso(); const n = { added: 0, updated: 0, events: 0 };
     tx(() => {
@@ -77,11 +84,11 @@ function registerDirectory(route, H) {
         const key = `${norm(o.country)}|${norm(o.name)}`;
         const had = db.prepare('SELECT id FROM directory_orgs WHERE key = ?').get(key);
         if (had) {
-          db.prepare(`UPDATE directory_orgs SET name=?, type=?, area=?, address=?, email=?, phone=?, website=?, reg_no=?, activity=?, notes=?, source_url=?, verification=?, updated_at=? WHERE id=?`)
-            .run(o.name, o.type, o.area, o.address, o.email, o.phone, o.website, o.reg_no, o.activity, o.notes, o.source_url, o.verification, now, had.id); n.updated++;
+          db.prepare(`UPDATE directory_orgs SET name=?, type=?, area=?, address=?, email=?, phone=?, website=?, reg_no=?, activity=?, event_date=?, notes=?, source_url=?, verification=?, updated_at=? WHERE id=?`)
+            .run(o.name, o.type, o.area, o.address, o.email, o.phone, o.website, o.reg_no, o.activity, o.event_date, o.notes, o.source_url, o.verification, now, had.id); n.updated++;
         } else {
-          db.prepare(`INSERT INTO directory_orgs (key, name, type, country, area, address, email, phone, website, reg_no, activity, notes, source_url, verification, is_public, created_at, updated_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`).run(key, o.name, o.type, o.country, o.area, o.address, o.email, o.phone, o.website, o.reg_no, o.activity, o.notes, o.source_url, o.verification, o.is_public, now, now); n.added++;
+          db.prepare(`INSERT INTO directory_orgs (key, name, type, country, area, address, email, phone, website, reg_no, activity, event_date, notes, source_url, verification, is_public, created_at, updated_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`).run(key, o.name, o.type, o.country, o.area, o.address, o.email, o.phone, o.website, o.reg_no, o.activity, o.event_date, o.notes, o.source_url, o.verification, o.is_public, now, now); n.added++;
         }
       }
       for (const e of data.events) {
@@ -153,9 +160,9 @@ function registerDirectory(route, H) {
   route('GET', '/directory', (ctx) => {
     const q = ctx.query; const f = { q: clean(q.get('q'), 80), country: clean(q.get('country'), 60) };
     const where = ['is_public = 1']; const args = [];
-    if (f.q) { where.push('(name LIKE ? OR area LIKE ? OR type LIKE ?)'); args.push(`%${f.q}%`, `%${f.q}%`, `%${f.q}%`); }
+    if (f.q) { where.push('(name LIKE ? OR area LIKE ? OR type LIKE ? OR address LIKE ? OR activity LIKE ?)'); args.push(...Array(5).fill(`%${f.q}%`)); }
     if (f.country) { where.push('country = ?'); args.push(f.country); }
-    const list = db.prepare(`SELECT id, name, type, country, area, website, email, status FROM directory_orgs WHERE ${where.join(' AND ')} ORDER BY name LIMIT 500`).all(...args);
+    const list = db.prepare(`SELECT id, name, type, country, area, address, email, phone, website, reg_no, activity, event_date, notes, source_url, verification, status FROM directory_orgs WHERE ${where.join(' AND ')} ORDER BY name LIMIT 500`).all(...args);
     const countries = db.prepare('SELECT country, COUNT(*) n FROM directory_orgs WHERE is_public = 1 GROUP BY country ORDER BY n DESC').all();
     page(ctx, { title: ctx.t('dirH'), active: 'community', body: D().publicList(ctx, { list, countries, f }) });
   });

@@ -143,7 +143,7 @@ const SCHEMA = [
   `CREATE INDEX IF NOT EXISTS idx_files_owner ON files(owner_kind, owner_id)`
 ];
 
-const COLUMNS = { events: [['start_time', 'TEXT'], ['end_time', 'TEXT'], ['tz', 'TEXT'], ['join_url', 'TEXT'], ['price_pence', 'INTEGER'], ['capacity', 'INTEGER']], rsvps: [['created_at', 'TEXT'], ['tickets', 'INTEGER NOT NULL DEFAULT 0']],
+const COLUMNS = { directory_orgs: [['event_date', 'TEXT']], events: [['start_time', 'TEXT'], ['end_time', 'TEXT'], ['tz', 'TEXT'], ['join_url', 'TEXT'], ['price_pence', 'INTEGER'], ['capacity', 'INTEGER']], rsvps: [['created_at', 'TEXT'], ['tickets', 'INTEGER NOT NULL DEFAULT 0']],
   users: [['bio', 'TEXT'], ['home_town', 'TEXT'], ['avatar_file_id', 'INTEGER'], ['tier', "TEXT NOT NULL DEFAULT 'free'"], ['member_until', 'TEXT']],
   memorials: [['born_on', 'TEXT'], ['died_on', 'TEXT'], ['birthplace', 'TEXT'], ['birthplace_ta', 'TEXT'], ['lived_in', 'TEXT'], ['lived_in_ta', 'TEXT'], ['informed_by', 'TEXT'], ['contacts', 'TEXT']] };
 function migrate(db) {
