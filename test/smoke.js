@@ -511,6 +511,14 @@ async function step(name, fn) { await fn(); passed++; console.log('  ✓', name)
       await admin.post('/admin/directory/make-partners', {}); // running again adds nothing twice
       assert.equal(((await anon.get('/partners')).text.match(/Leeds Tamil School<\/h3>/g) || []).length, 1);
     });
+    await step('social media logos appear in the footer once linked', async () => {
+      assert.doesNotMatch((await anon.get('/')).text, /class="socials"/);
+      assert.equal((await member.post('/admin/socials', { facebook: 'https://facebook.com/kuviyam' })).status, 403);
+      await admin.post('/admin/socials', { facebook: 'facebook.com/kuviyam', instagram: 'https://instagram.com/kuviyam', youtube: 'javascript:alert(1)' });
+      assert.match(decodeURIComponent(admin.jar.flash || '') + (await admin.get('/admin/socials')).text, /YouTube|Social links/);
+      const home = (await anon.get('/')).text;
+      assert.match(home, /class="socials"/); assert.match(home, /https:\/\/facebook\.com\/kuviyam/); assert.match(home, /instagram\.com\/kuviyam/); assert.doesNotMatch(home, /javascript:alert/);
+    });
     await step('obituaries page links to other Tamil notice sites', async () => {
       const m = (await anon.get('/memorials')).text; assert.match(m, /More notices from the Tamil community/); assert.match(m, /https:\/\/ripbook\.com\//); assert.match(m, /rip\.page/);
     });

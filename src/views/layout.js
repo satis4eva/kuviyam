@@ -75,7 +75,7 @@ ${flash ? h`<div class="flash ${flash.kind || ''}" role="status">${flash.msg}</d
 ${body}
 </main>
 ${tabbar(ctx, active)}
-<footer class="foot">${t('footer')} · <a href="/membership">${t('nav_membership')}</a> · <a href="/join">${t('nav_join')}</a> · <a href="/transparency">${t('nav_transparency')}</a><br>${t('charityNo')}</footer>
+<footer class="foot">${require('../socials').footerIcons(ctx, ctx.socials)}${t('footer')} · <a href="/membership">${t('nav_membership')}</a> · <a href="/join">${t('nav_join')}</a> · <a href="/transparency">${t('nav_transparency')}</a><br>${t('charityNo')}</footer>
 </body>
 </html>`;
 }

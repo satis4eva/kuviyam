@@ -13,6 +13,7 @@ const { layout } = require('./views/layout');
 const { registerCommunity } = require('./community');
 const { registerSocial, can } = require('./social');
 const { registerTheme } = require('./theme');
+const { registerSocials } = require('./socials');
 const { registerEmails } = require('./emails');
 const { registerTickets } = require('./tickets');
 const { createOutbox } = require('./outbox');
@@ -622,6 +623,7 @@ function createApp(db) {
   registerCommunity(route, H);
   registerSocial(route, H);
   registerTheme(route, H);
+  registerSocials(route, H);
   registerEmails(route, H);
   registerDirectory(route, H);
 
@@ -661,6 +663,7 @@ function createApp(db) {
       ctx.counts = H.counts ? H.counts(ctx.user) : null;
       ctx.big = cookies.big === '1';
       ctx.themeCss = H.themeCss ? H.themeCss() : '';
+      ctx.socials = H.socialLinks ? H.socialLinks() : [];
       ctx.autoDark = H.theme ? !H.theme().light : false;
       ctx.sampleRemoved = cleanup.isRemoved(db);
       ctx.mode = cookies.mode === 'dark' || cookies.mode === 'light' ? cookies.mode : '';

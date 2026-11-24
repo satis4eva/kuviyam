@@ -452,3 +452,5 @@ pre.code{background:var(--bg);border:1px solid var(--line);border-radius:10px;pa
 .dir-search{max-width:none}.dir-search input{min-width:200px}
 
 .rip-more{margin-top:18px}.rip-site{display:flex;flex-direction:column;gap:4px}
+.socials{display:flex;flex-wrap:wrap;gap:10px;margin:0 0 14px}.socials a{display:inline-flex;border-radius:50%;transition:transform .15s}.socials a:hover,.socials a:focus-visible{transform:translateY(-2px)}
+.social-f input{margin-top:6px}
