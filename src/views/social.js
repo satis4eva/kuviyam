@@ -122,10 +122,10 @@ function notifications(ctx, d) {
   const { t } = ctx;
   const line = (n) => {
     const who = h`<b>${n.actor_name || t('someone')}</b>`;
-    const href = n.kind === 'follow' ? `/members/${n.actor_id}` : n.kind === 'message' ? `/messages/${n.actor_id}` : `/community/posts/${n.target_id}`;
+    const href = n.kind === 'follow' ? `/members/${n.actor_id}` : n.kind === 'message' ? `/messages/${n.actor_id}` : n.kind === 'rsvp' ? `/dashboard/events/${n.target_id}` : `/community/posts/${n.target_id}`;
     const what = t('nt_' + n.kind);
     return h`<a class="row nowrap thread plain${n.read_at ? '' : ' unread'}" href="${href}">${memberAvatar({ id: n.actor_id, name: n.actor_name || '?', avatar_file_id: n.actor_avatar })}
-      <span class="grow0">${who} ${what}${n.post_text ? h`<span class="small muted block clip">“${n.post_text}”</span>` : ''}</span><span class="tiny muted">${timeAgo(ctx, n.created_at)}</span></a>`;
+      <span class="grow0">${who} ${what}${n.event_title ? h`<span class="small muted block clip">📅 ${n.event_title}</span>` : ''}${n.post_text ? h`<span class="small muted block clip">“${n.post_text}”</span>` : ''}</span><span class="tiny muted">${timeAgo(ctx, n.created_at)}</span></a>`;
   };
   return h`<section class="narrow wide2 stack"><h1>${t('notesH')}</h1>
     ${d.list.length ? h`<div class="card list">${d.list.map(line)}</div>` : h`<div class="empty">${t('noNotes')}</div>`}</section>`;
@@ -181,4 +181,29 @@ function adminTheme(ctx, d) {
   <script src="/static/theme-admin.js" defer></script>`;
 }
 
-module.exports = { adminTheme, plans, pay, members, profile, followList, editProfile, inbox, thread, notifications, adminMembership };
+function adminEmails(ctx, d) {
+  const { t, lang } = ctx; const { adminTabs } = require('./manage');
+  const kinds = { rsvp_confirm: 'mkConfirm', reminder_day: 'mkDay', reminder_hour: 'mkHour', event_msg: 'mkMsg', partner_digest: 'mkDigest', test: 'mkTest' };
+  const chip = (st) => h`<span class="chip ${st === 'sent' ? 'good' : st === 'failed' ? 'bad' : st === 'queued' || st === 'sending' ? 'warn' : 'plain'}">${t('ms_' + st)}</span>`;
+  return h`<section><h1>${t('adH')}</h1></section>${adminTabs(ctx, 'emails')}
+  <section class="split">
+    <div class="card tw"><h2 class="pad">${t('recentEmails')}</h2><table><thead><tr><th>${t('mailWhat')}</th><th>${t('email')}</th><th>${t('thStatus')}</th><th>${t('date')}</th></tr></thead><tbody>
+      ${d.list.length ? d.list.map((m) => h`<tr><td>${t(kinds[m.kind] || m.kind)}${m.subject ? h`<div class="tiny muted">${m.subject}</div>` : ''}${m.last_error ? h`<div class="tiny bad-t">${m.last_error}</div>` : ''}</td><td class="tiny">${m.to_email}</td><td>${chip(m.status)}</td>
+        <td class="tiny muted">${m.status === 'sent' ? dateLabel(m.sent_at, lang) : m.status === 'queued' ? t('mailDue', { d: dateLabel(m.send_after, lang) }) : dateLabel(m.created_at, lang)}</td></tr>`) : h`<tr><td colspan="4" class="empty">${t('noEmailsYet')}</td></tr>`}
+    </tbody></table></div>
+    <div class="stack">
+      <div class="card pad stack"><h2>${t('mailSetup')}</h2>
+        ${d.provider === 'log' ? h`<div class="flash warn">${t('mailLogMode')}</div>` : h`<div class="flash good">${t('mailOn', { p: d.provider === 'smtp' ? 'SMTP' : 'Resend', f: d.from })}</div>`}
+        <p class="small">${t('mailHowTo')}</p>
+        <pre class="code">SMTP_HOST=smtp.hostinger.com
+SMTP_PORT=465
+SMTP_USER=noreply@kuviyam.org
+SMTP_PASS=…
+MAIL_FROM=noreply@kuviyam.org</pre>
+        <form method="post" action="/admin/emails/test">${csrfField(ctx)}<button class="btn">${t('sendTest')}</button></form></div>
+      <div class="card pad"><div class="tiny muted">${t('ms_sent')}: <b>${d.counts.sent || 0}</b> · ${t('ms_queued')}: <b>${d.counts.queued || 0}</b> · ${t('ms_failed')}: <b>${d.counts.failed || 0}</b></div></div>
+    </div>
+  </section>`;
+}
+
+module.exports = { adminEmails, adminTheme, plans, pay, members, profile, followList, editProfile, inbox, thread, notifications, adminMembership };

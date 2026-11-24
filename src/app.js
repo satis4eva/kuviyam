@@ -13,6 +13,9 @@ const { layout } = require('./views/layout');
 const { registerCommunity } = require('./community');
 const { registerSocial, can } = require('./social');
 const { registerTheme } = require('./theme');
+const { registerEmails } = require('./emails');
+const { registerTickets } = require('./tickets');
+const { createOutbox } = require('./outbox');
 const P = require('./views/pages');
 const M = require('./views/manage');
 
@@ -65,6 +68,7 @@ function createApp(db) {
   const tx = (fn) => { db.exec('BEGIN'); try { const r = fn(); db.exec('COMMIT'); return r; } catch (e) { db.exec('ROLLBACK'); throw e; } };
   const fileErr = (ctx, code, name) => ctx.t('file_' + code, { f: name });
   const H = { db, page: (...a) => page(...a), redirect: (...a) => redirect(...a), requireUser: (c) => requireUser(c), partnerOrg: (c) => partnerOrg(c), requireAdmin: (c) => requireAdmin(c), saveFile: (...a) => saveFile(...a), tx: (f) => tx(f), HttpError, fileErr: (...a) => fileErr(...a), can };
+  H.outbox = createOutbox(db);
   const maskEmail = (e) => { const [u, d] = String(e).split('@'); return (u ? u[0] : '') + '•••@' + (d || ''); };
 
   /* ---------------- language ---------------- */
@@ -596,9 +600,11 @@ function createApp(db) {
   });
 
   /* ---------------- community hub ---------------- */
+  registerTickets(route, H);
   registerCommunity(route, H);
   registerSocial(route, H);
   registerTheme(route, H);
+  registerEmails(route, H);
 
   /* ---------------- request handling ---------------- */
   function serveStatic(ctx) {
@@ -616,7 +622,9 @@ function createApp(db) {
     });
   }
 
-  return async function handle(req, res) {
+  handle.outbox = H.outbox;
+  return handle;
+  async function handle(req, res) {
     const url = new URL(req.url, 'http://local');
     const cookies = auth.parseCookies(req.headers.cookie);
     const lang = cookies.lang === 'ta' || cookies.lang === 'en' ? cookies.lang : (/^ta\b/i.test(req.headers['accept-language'] || '') ? 'ta' : 'en');

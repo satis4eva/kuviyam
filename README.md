@@ -10,6 +10,8 @@ Tamil and English giving platform for Kuviyam (kuviyam.org): verified charities,
 - **Partner dashboard:** overview, bilingual projects, monthly reports with expense lines and receipt uploads, submit for review, students (first name only).
 - **Community hub:** partner feed with photos and short videos, likes, comments and reporting; events with approval and RSVP; obituaries and memorials with approval, candles, condolences and giving in memory.
 - **Members:** free sign-up with email; Silver and Gold paid memberships (prices set by admins, test payments until DPayments is live). Profiles with photo, home town and bio, follow, people search, member posts with photos (Gold: videos), likes and comments, one-to-one messages, notifications, blocking.
+- **Events:** times with time zones, private joining links (Zoom, Teams, Meet) for people going, attendee lists with spreadsheet download, message everyone going, add to calendar. Paid events sell tickets through the platform gateway; the platform keeps its commission and records payouts to organisers.
+- **Emails:** RSVP confirmation, ticket email, reminders the day before and an hour before, host messages, a daily summary for partners. Admin > Emails shows every email and a test button.
 - **Admin:** review queue (applications with documents, monthly reports), approve or send back, partners list with suspend/reinstate, donations list.
 
 ## Run it
@@ -29,6 +31,8 @@ npm test           # end-to-end smoke test on a temporary database
 | `DATA_DIR` | Folder for the database, kept outside the app so deploys never wipe it (default `~/kuviyam-data`) |
 | `SETUP_CODE` | One-time code that lets you create the first admin at `/setup`. The page closes once an admin exists. |
 | `ADMIN_EMAIL` / `ADMIN_PASSWORD` | On start, creates this admin (or makes that account admin and resets its password). Password 12+ characters. Remove both once you can sign in. |
+| `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`, `MAIL_FROM` | Send email through a mailbox (Hostinger: `smtp.hostinger.com`, port 465). Or set `RESEND_API_KEY` and `MAIL_FROM`. With neither, emails are written to the log. |
+| `TICKET_PAYMENT_PROVIDER` | Gateway for event tickets (the platform's account), separate from donations. `test` until connected. Commission is set in Admin > Tickets. |
 | `PAYMENT_PROVIDER` | `test` (default). `dpayments` once the integration is built. |
 | `SEED_DEMO` | `1` loads the sample partners, projects and reports on an empty database |
 | `DEMO_MODE` | `1` shows the staging banner, hides the site from search engines and shows the demo partner login |

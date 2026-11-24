@@ -1,10 +1,11 @@
 'use strict';
 /* Community hub: partner feed (photos, videos, text), events with RSVP, obituaries and memorials. */
-const { nowIso, clean } = require('./util');
+const { nowIso, clean, toPence, gbp } = require('./util');
 const { checkFile } = require('./multipart');
 const { audit } = require('./db');
 const auth = require('./auth');
 const C = require('./views/community');
+const ET = require('./eventtime');
 
 const MODES = ['inperson', 'online', 'tickets', 'volunteers'];
 const NOTICE_TYPES = ['obituary', 'sudden', 'thanks', 'r31', 'r1', 'r5', 'r10', 'tribute'];
@@ -93,34 +94,46 @@ function registerCommunity(route, H) {
     e.going_me = !!(ctx.user && db.prepare('SELECT 1 FROM rsvps WHERE event_id = ? AND user_id = ?').get(e.id, ctx.user.id));
     return e;
   };
+  const canSeeLink = (ctx, e) => !!ctx.user && (e.going_me || ctx.user.role === 'admin' || ctx.user.orgs.some((x) => x.id === e.org_id));
   route('GET', '/events/:id', (ctx) => {
     const e = liveEvent(ctx, ctx.params.id);
     const more = db.prepare(`SELECT e.*, o.name AS org_name, o.name_ta AS org_name_ta, o.slug AS org_slug FROM events e JOIN orgs o ON o.id = e.org_id
       WHERE e.status = 'live' AND o.status = 'verified' AND e.starts_on >= ? AND e.id != ? ORDER BY e.starts_on LIMIT 3`).all(today(), e.id);
     const title = (ctx.lang === 'ta' && e.title_ta) || e.title;
-    page(ctx, { title, active: 'community', body: C.eventPage(ctx, { event: e, more }),
+    const canJoin = !!ctx.user && (e.going_me || ctx.user.role === 'admin' || ctx.user.orgs.some((x) => x.id === e.org_id));
+    const tickets = e.price_pence > 0 ? { mine: ctx.user ? H.ticketsFor(e.id, ctx.user.id) : [], left: e.capacity ? Math.max(0, e.capacity - H.ticketsSold(e.id)) : null } : null;
+    page(ctx, { title, active: 'community', body: C.eventPage(ctx, { event: e, more, canJoin, phase: ET.phase(e), tickets }),
       og: { title, description: String((ctx.lang === 'ta' && e.details_ta) || e.details || e.place).slice(0, 200), path: `/events/${e.id}` } });
   });
   // One-click 'add to calendar' (works with iPhone, Android, Outlook and Google Calendar).
   route('GET', '/events/:id/calendar.ics', (ctx) => {
     const e = liveEvent(ctx, ctx.params.id);
     const d = e.starts_on.replace(/-/g, ''); const next = new Date(e.starts_on + 'T00:00:00Z'); next.setUTCDate(next.getUTCDate() + 1);
+    const w = ET.window(e); const stamp = (x) => x.toISOString().replace(/[-:]/g, '').slice(0, 15) + 'Z';
     const esc = (v) => String(v || '').replace(/\\/g, '\\\\').replace(/[,;]/g, (c) => '\\' + c).replace(/\r?\n/g, '\\n');
     const ics = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//Kuviyam//Events//EN', 'BEGIN:VEVENT', `UID:event-${e.id}@kuviyam`, `DTSTAMP:${new Date().toISOString().replace(/[-:]/g, '').slice(0, 15)}Z`,
-      `DTSTART;VALUE=DATE:${d}`, `DTEND;VALUE=DATE:${next.toISOString().slice(0, 10).replace(/-/g, '')}`, `SUMMARY:${esc(e.title)}`, `LOCATION:${esc(e.place)}`, `DESCRIPTION:${esc((e.details || '') + ' (' + e.org_name + ')')}`, 'END:VEVENT', 'END:VCALENDAR'].join('\r\n');
+      ...(w.hasTime ? [`DTSTART:${stamp(w.start)}`, `DTEND:${stamp(w.end)}`] : [`DTSTART;VALUE=DATE:${d}`, `DTEND;VALUE=DATE:${next.toISOString().slice(0, 10).replace(/-/g, '')}`]),
+      ...(canSeeLink(ctx, e) && e.join_url ? [`URL:${e.join_url}`] : []), `SUMMARY:${esc(e.title)}`, `LOCATION:${esc(e.place)}`, `DESCRIPTION:${esc((e.details || '') + ' (' + e.org_name + ')')}`, 'END:VEVENT', 'END:VCALENDAR'].join('\r\n');
     ctx.res.writeHead(200, { 'Content-Type': 'text/calendar; charset=utf-8', 'Content-Disposition': `attachment; filename="kuviyam-event-${e.id}.ics"`, 'Cache-Control': 'no-store' });
     ctx.res.end(ics);
   });
   route('POST', '/events/:id/rsvp', (ctx) => {
     if (!requireUser(ctx)) return;
-    const e = db.prepare(`SELECT e.id FROM events e JOIN orgs o ON o.id = e.org_id WHERE e.id = ? AND e.status = 'live' AND o.status = 'verified'`).get(Number(ctx.params.id)); if (!e) throw new HttpError(404);
+    const e = db.prepare(`SELECT e.* FROM events e JOIN orgs o ON o.id = e.org_id WHERE e.id = ? AND e.status = 'live' AND o.status = 'verified'`).get(Number(ctx.params.id)); if (!e) throw new HttpError(404);
+    // Paid events: going means buying a ticket; people who bought can't un-RSVP here (refunds go through the organiser).
+    if (e.price_pence > 0) return redirect(ctx, `/events/${e.id}/tickets`);
     let on = false;
     tx(() => {
       const had = db.prepare('DELETE FROM rsvps WHERE event_id = ? AND user_id = ?').run(e.id, ctx.user.id).changes;
-      if (!had) { db.prepare('INSERT INTO rsvps (event_id, user_id) VALUES (?, ?)').run(e.id, ctx.user.id); on = true; }
+      if (!had) { db.prepare('INSERT INTO rsvps (event_id, user_id, created_at) VALUES (?, ?, ?)').run(e.id, ctx.user.id, nowIso()); on = true; }
       db.prepare('UPDATE events SET going = MAX(0, going + ?) WHERE id = ?').run(had ? -1 : 1, e.id);
+      if (on) {
+        // Tell the partner's team straight away, and queue the confirmation and reminders.
+        for (const m of db.prepare('SELECT user_id FROM org_members WHERE org_id = ?').all(e.org_id)) H.notify(m.user_id, ctx.user.id, 'rsvp', e.id);
+        if (H.outbox) H.outbox.onRsvp(e, ctx.user);
+      } else if (H.outbox) H.outbox.onUnRsvp(e.id, ctx.user.id);
     });
-    redirect(ctx, back(ctx, `/events/${e.id}`), { kind: 'good', msg: ctx.t(on ? 'rsvpOn' : 'rsvpOff') });
+    redirect(ctx, back(ctx, `/events/${e.id}`), { kind: 'good', msg: ctx.t(on ? (e.join_url ? 'rsvpOnLink' : 'rsvpOnMail') : 'rsvpOff') });
   });
 
   /* ---------------- memorials (notices like a Tamil obituary board) ---------------- */
@@ -236,20 +249,78 @@ function registerCommunity(route, H) {
     const r = db.prepare(`UPDATE posts SET status = 'removed' WHERE id = ? AND org_id = ?`).run(Number(ctx.params.id), o.id); if (!r.changes) throw new HttpError(404);
     redirect(ctx, '/dashboard/posts', { kind: 'good', msg: ctx.t('postRemoved') });
   });
+  const hhmm = (x) => (/^([01]\d|2[0-3]):[0-5]\d$/.test(x || '') ? x : null);
+  /** Time, time zone and joining link from a form. The link must be a normal https web address (Zoom, Teams, Meet…). */
+  function readTimeAndLink(b) {
+    const raw = String(b.join_url || '').trim(); let join = null; let badLink = false;
+    if (raw) { try { const u = new URL(raw); if (u.protocol === 'https:') join = u.href.slice(0, 500); else badLink = true; } catch { badLink = true; } }
+    return { start_time: hhmm(b.start_time), end_time: hhmm(b.start_time) ? hhmm(b.end_time) : null, tz: ET.ZONE_IDS.includes(b.tz) ? b.tz : ET.DEFAULT_TZ, join_url: join, badLink };
+  }
+  const orgEvent = (o, id) => { const e = db.prepare('SELECT * FROM events WHERE id = ? AND org_id = ?').get(Number(id), o.id); if (!e) throw new HttpError(404); return e; };
+  const attendees = (eventId) => db.prepare(`SELECT u.id, u.name, u.email, u.home_town, u.avatar_file_id, r.created_at, r.tickets FROM rsvps r JOIN users u ON u.id = r.user_id WHERE r.event_id = ? ORDER BY r.created_at DESC, u.name`).all(eventId);
+  route('GET', '/dashboard/events/:id', (ctx) => {
+    const o = partnerOrg(ctx); if (!o) return;
+    const e = orgEvent(o, ctx.params.id);
+    page(ctx, { title: e.title, active: 'dashboard', body: C.dashEvent(ctx, { org: o, event: e, people: attendees(e.id), sales: e.price_pence > 0 ? H.eventSales(e.id) : null, bps: H.commissionBps() }) });
+  });
+  // Spreadsheet of who's going (opens in Excel, Numbers or Google Sheets).
+  route('GET', '/dashboard/events/:id/attendees.csv', (ctx) => {
+    const o = partnerOrg(ctx); if (!o) return;
+    const e = orgEvent(o, ctx.params.id);
+    const cell = (v) => { let x = String(v ?? ''); if (/^[=+\-@]/.test(x)) x = "'" + x; return `"${x.replace(/"/g, '""')}"`; };
+    const rows = [['Name', 'Email', 'Home town', 'RSVP date', 'Tickets'], ...attendees(e.id).map((p) => [p.name, p.email, p.home_town || '', (p.created_at || '').slice(0, 16).replace('T', ' '), p.tickets || ''])];
+    ctx.res.writeHead(200, { 'Content-Type': 'text/csv; charset=utf-8', 'Content-Disposition': `attachment; filename="kuviyam-event-${e.id}-going.csv"`, 'Cache-Control': 'no-store' });
+    ctx.res.end('\ufeff' + rows.map((r) => r.map(cell).join(',')).join('\r\n'));
+  });
+  // Message everyone going: arrives in their Kuviyam messages and by email.
+  route('POST', '/dashboard/events/:id/message', (ctx) => {
+    const o = partnerOrg(ctx); if (!o) return;
+    const e = orgEvent(o, ctx.params.id);
+    const text = clean(ctx.body.text, 1500);
+    if (!text) return redirect(ctx, `/dashboard/events/${e.id}`, { kind: 'bad', msg: ctx.t('errComment') });
+    if (auth.throttled('evmsg:' + e.id, 10, 60 * 60 * 1000)) return redirect(ctx, `/dashboard/events/${e.id}`, { kind: 'bad', msg: ctx.t('errThrottle') });
+    const people = attendees(e.id).filter((p) => p.id !== ctx.user.id);
+    tx(() => {
+      for (const p of people) {
+        db.prepare('INSERT INTO messages (from_id, to_id, body, created_at) VALUES (?, ?, ?, ?)').run(ctx.user.id, p.id, `📅 ${e.title}\n${text}`, nowIso());
+        H.notify(p.id, ctx.user.id, 'message', null);
+        if (H.outbox) H.outbox.enqueue('event_msg', p.email, { userId: p.id, eventId: e.id, orgId: o.id, payload: { text } });
+      }
+      audit(db, ctx.user.id, 'event-message', `#${e.id} to ${people.length}`);
+    });
+    redirect(ctx, `/dashboard/events/${e.id}`, { kind: 'good', msg: ctx.t('evMsgSent', { n: people.length }) });
+  });
+  // Add or change the time and joining link after the event is listed.
+  route('POST', '/dashboard/events/:id/details', (ctx) => {
+    const o = partnerOrg(ctx); if (!o) return;
+    const e = orgEvent(o, ctx.params.id);
+    const v = readTimeAndLink(ctx.body);
+    if (v.badLink) return redirect(ctx, `/dashboard/events/${e.id}`, { kind: 'bad', msg: ctx.t('errJoinUrl') });
+    db.prepare('UPDATE events SET start_time = ?, end_time = ?, tz = ?, join_url = ? WHERE id = ?').run(v.start_time, v.end_time, v.tz, v.join_url, e.id);
+    audit(db, ctx.user.id, 'event-details', `#${e.id}`);
+    redirect(ctx, `/dashboard/events/${e.id}`, { kind: 'good', msg: ctx.t('evDetailsSaved') });
+  });
   route('GET', '/dashboard/events', (ctx) => {
     const o = partnerOrg(ctx); if (!o) return;
-    page(ctx, { title: ctx.t('tEvents'), active: 'dashboard', body: C.dashEvents(ctx, { org: o, events: db.prepare('SELECT * FROM events WHERE org_id = ? ORDER BY starts_on DESC').all(o.id), values: { place: o.place } }) });
+    ctx.commissionPct = (H.commissionBps() / 100).toFixed(2).replace(/\.?0+$/, ''); page(ctx, { title: ctx.t('tEvents'), active: 'dashboard', body: C.dashEvents(ctx, { org: o, events: db.prepare('SELECT * FROM events WHERE org_id = ? ORDER BY starts_on DESC').all(o.id), values: { place: o.place } }) });
   });
   route('POST', '/dashboard/events', (ctx) => {
     const o = partnerOrg(ctx); if (!o) return;
     const b = ctx.body; const errs = [];
-    const v = { title: clean(b.title, 160), title_ta: clean(b.title_ta, 160), starts_on: String(b.starts_on || ''), place: clean(b.place, 160), place_ta: clean(b.place_ta, 160), mode: MODES.includes(b.mode) ? b.mode : '', price: clean(b.price, 30), details: clean(b.details, 1500), details_ta: clean(b.details_ta, 1500) };
+    const v = { title: clean(b.title, 160), title_ta: clean(b.title_ta, 160), starts_on: String(b.starts_on || ''), place: clean(b.place, 160), place_ta: clean(b.place_ta, 160), mode: MODES.includes(b.mode) ? b.mode : '', price: clean(b.price, 30), details: clean(b.details, 1500), details_ta: clean(b.details_ta, 1500), ...readTimeAndLink(b) };
+    if (v.badLink) errs.push(ctx.t('errJoinUrl'));
+    // A ticketed event with a price is sold through Kuviyam (platform gateway); otherwise the price is just shown.
+    v.price_pence = v.mode === 'tickets' ? toPence(b.price) : null; if (!(v.price_pence > 0)) v.price_pence = null;
+    if (v.price_pence && v.price_pence > 100000) errs.push(ctx.t('errAmount'));
+    v.capacity = v.price_pence && Number(b.capacity) > 0 ? Math.min(100000, Math.floor(Number(b.capacity))) : null;
+    if (v.price_pence) v.price = gbp(v.price_pence);
     if (!v.title && !v.title_ta) errs.push(ctx.t('errTitle'));
     if (!/^\d{4}-\d{2}-\d{2}$/.test(v.starts_on) || v.starts_on < today()) errs.push(ctx.t('errEventDate'));
     if (!v.place || !v.mode) errs.push(ctx.t('required'));
+    ctx.commissionPct = (H.commissionBps() / 100).toFixed(2).replace(/\.?0+$/, '');
     if (errs.length) return page(ctx, { active: 'dashboard', body: C.dashEvents(ctx, { org: o, events: db.prepare('SELECT * FROM events WHERE org_id = ? ORDER BY starts_on DESC').all(o.id), values: b, errors: errs }) }, 400);
-    db.prepare(`INSERT INTO events (org_id, title, title_ta, starts_on, place, place_ta, mode, price, details, details_ta, status, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', ?)`)
-      .run(o.id, v.title || v.title_ta, v.title_ta || null, v.starts_on, v.place, v.place_ta || null, v.mode, v.mode === 'tickets' ? v.price || null : null, v.details || null, v.details_ta || null, nowIso());
+    db.prepare(`INSERT INTO events (org_id, title, title_ta, starts_on, place, place_ta, mode, price, details, details_ta, status, created_at, start_time, end_time, tz, join_url, price_pence, capacity) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', ?, ?, ?, ?, ?, ?, ?)`)
+      .run(o.id, v.title || v.title_ta, v.title_ta || null, v.starts_on, v.place, v.place_ta || null, v.mode, v.mode === 'tickets' ? v.price || null : null, v.details || null, v.details_ta || null, nowIso(), v.start_time, v.end_time, v.tz, v.join_url, v.price_pence, v.capacity);
     redirect(ctx, '/dashboard/events', { kind: 'good', msg: ctx.t('eventSent') });
   });
 

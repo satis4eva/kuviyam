@@ -8,7 +8,7 @@ const postBtn = (ctx, action, label, cls = '') => h`<form method="post" action="
 
 /* ================= partner dashboard ================= */
 function tabs(ctx, active) {
-  const items = [['/dashboard', 'tOverview', 'overview'], ['/dashboard/reports', 'tReports', 'reports'], ['/dashboard/projects/new', 'tProject', 'project'], ['/dashboard/students', 'tStudents', 'students'], ['/dashboard/posts', 'tPosts', 'posts'], ['/dashboard/events', 'tEvents', 'events']];
+  const items = [['/dashboard', 'tOverview', 'overview'], ['/dashboard/reports', 'tReports', 'reports'], ['/dashboard/projects/new', 'tProject', 'project'], ['/dashboard/students', 'tStudents', 'students'], ['/dashboard/posts', 'tPosts', 'posts'], ['/dashboard/events', 'tEvents', 'events'], ['/dashboard/payouts', 'tPayouts', 'payouts']];
   return h`<nav class="tabs" aria-label="${ctx.t('pdH')}">${items.map(([href, k, id]) => h`<a href="${href}" class="${active === id ? 'on' : ''}">${ctx.t(k)}</a>`)}</nav>`;
 }
 function dashHead(ctx, org) {
@@ -103,7 +103,7 @@ function students(ctx, d) {
 
 /* ================= admin ================= */
 function adminTabs(ctx, active) {
-  const items = [['/admin', 'tQueue', 'queue'], ['/admin/partners', 'tPartners', 'partners'], ['/admin/donations', 'tDonations', 'donations'], ['/admin/membership', 'tMembership', 'membership'], ['/admin/theme', 'tTheme', 'theme'], ['/admin/admins', 'tAdmins', 'admins']];
+  const items = [['/admin', 'tQueue', 'queue'], ['/admin/partners', 'tPartners', 'partners'], ['/admin/donations', 'tDonations', 'donations'], ['/admin/membership', 'tMembership', 'membership'], ['/admin/theme', 'tTheme', 'theme'], ['/admin/emails', 'tEmails', 'emails'], ['/admin/tickets', 'tTickets', 'tickets'], ['/admin/admins', 'tAdmins', 'admins']];
   return h`<nav class="tabs" aria-label="${ctx.t('adH')}">${items.map(([href, k, id]) => h`<a href="${href}" class="${active === id ? 'on' : ''}">${ctx.t(k)}</a>`)}</nav>`;
 }
 function admin(ctx, d) {

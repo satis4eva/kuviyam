@@ -414,3 +414,25 @@ html.big body{zoom:1.15}
 .ev-page h1{font-size:28px}
 .ev-details{white-space:pre-line;font-size:16.5px;margin:0}
 @media (max-width:600px){.ev-hero{padding:16px;gap:12px}.ev-page h1{font-size:22px}.ev-actions .btn{flex:1}}
+
+.f3{display:grid;grid-template-columns:1fr 1fr 1.3fr;gap:10px}
+@media (max-width:600px){.f3{grid-template-columns:1fr 1fr}.f3 label:last-child{grid-column:span 2}}
+.joinbox{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;padding:14px 16px;border-radius:14px;background:#EAF2FB;border:1px solid #C9DCF0}
+.joinbox.live{background:#FDF0D8;border-color:#F0C979}
+.joinbox.locked{background:var(--bg);border-style:dashed;border-color:var(--line);color:var(--muted)}
+.force-dark .joinbox,.auto-dark .joinbox{background:var(--brand-soft);border-color:var(--line)}
+pre.code{background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:10px 12px;font-size:12.5px;overflow-x:auto;margin:0}
+.bad-t{color:var(--bad)}
+
+/* ---- tickets ---- */
+.tk{align-items:start}
+.price-row{padding:12px 14px;border-radius:12px;background:var(--bg)}
+.ticket{overflow:hidden}
+.ticket-top{display:grid;gap:6px;padding:22px;background:linear-gradient(120deg,#FDF0D8,#FBE9E1)}
+.ticket-top .chip{justify-self:start}
+.ticket-cut{height:0;border-top:2px dashed var(--line);margin:0 14px}
+.ticket-ref{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:18px;letter-spacing:.06em}
+.payout-form{margin-top:8px;min-width:220px}
+.payout-form input{padding:7px 9px;border:1px solid var(--line);border-radius:8px;background:var(--bg)}
+.force-dark .ticket-top,.auto-dark .ticket-top{background:linear-gradient(120deg,#33270F,#33231C)}
+.split .f3{grid-template-columns:1fr 1fr}.split .f3 label:last-child{grid-column:span 2}

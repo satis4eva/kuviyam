@@ -105,6 +105,21 @@ const SCHEMA = [
   `CREATE TABLE IF NOT EXISTS notifications (
      id INTEGER PRIMARY KEY, user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE, actor_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
      kind TEXT NOT NULL, target_id INTEGER, created_at TEXT NOT NULL, read_at TEXT)`,
+  `CREATE TABLE IF NOT EXISTS outbox (
+     id INTEGER PRIMARY KEY, kind TEXT NOT NULL, to_email TEXT NOT NULL, user_id INTEGER, event_id INTEGER, org_id INTEGER, payload TEXT,
+     send_after TEXT NOT NULL, status TEXT NOT NULL DEFAULT 'queued', attempts INTEGER NOT NULL DEFAULT 0, last_error TEXT, subject TEXT,
+     sent_at TEXT, created_at TEXT NOT NULL)`,
+  `CREATE TABLE IF NOT EXISTS ticket_orders (
+     id INTEGER PRIMARY KEY, ref TEXT NOT NULL UNIQUE, event_id INTEGER NOT NULL REFERENCES events(id), org_id INTEGER NOT NULL, user_id INTEGER NOT NULL,
+     qty INTEGER NOT NULL, unit_pence INTEGER NOT NULL, gross_pence INTEGER NOT NULL, commission_bps INTEGER NOT NULL, commission_pence INTEGER NOT NULL,
+     net_pence INTEGER NOT NULL, status TEXT NOT NULL DEFAULT 'pending', provider TEXT NOT NULL, provider_ref TEXT, payout_id INTEGER,
+     buyer_name TEXT NOT NULL, buyer_email TEXT NOT NULL, created_at TEXT NOT NULL, paid_at TEXT)`,
+  `CREATE TABLE IF NOT EXISTS payouts (
+     id INTEGER PRIMARY KEY, org_id INTEGER NOT NULL REFERENCES orgs(id), amount_pence INTEGER NOT NULL, orders INTEGER NOT NULL,
+     reference TEXT, note TEXT, created_by INTEGER, created_at TEXT NOT NULL)`,
+  `CREATE INDEX IF NOT EXISTS idx_ticket_orders_event ON ticket_orders(event_id, status)`,
+  `CREATE INDEX IF NOT EXISTS idx_ticket_orders_org ON ticket_orders(org_id, status, payout_id)`,
+  `CREATE INDEX IF NOT EXISTS idx_outbox_due ON outbox(status, send_after)`,
   `CREATE INDEX IF NOT EXISTS idx_messages_pair ON messages(from_id, to_id, created_at)`,
   `CREATE INDEX IF NOT EXISTS idx_messages_to ON messages(to_id, read_at)`,
   `CREATE INDEX IF NOT EXISTS idx_notif_user ON notifications(user_id, read_at, created_at)`,
@@ -118,7 +133,8 @@ const SCHEMA = [
   `CREATE INDEX IF NOT EXISTS idx_files_owner ON files(owner_kind, owner_id)`
 ];
 
-const COLUMNS = { users: [['bio', 'TEXT'], ['home_town', 'TEXT'], ['avatar_file_id', 'INTEGER'], ['tier', "TEXT NOT NULL DEFAULT 'free'"], ['member_until', 'TEXT']],
+const COLUMNS = { events: [['start_time', 'TEXT'], ['end_time', 'TEXT'], ['tz', 'TEXT'], ['join_url', 'TEXT'], ['price_pence', 'INTEGER'], ['capacity', 'INTEGER']], rsvps: [['created_at', 'TEXT'], ['tickets', 'INTEGER NOT NULL DEFAULT 0']],
+  users: [['bio', 'TEXT'], ['home_town', 'TEXT'], ['avatar_file_id', 'INTEGER'], ['tier', "TEXT NOT NULL DEFAULT 'free'"], ['member_until', 'TEXT']],
   memorials: [['born_on', 'TEXT'], ['died_on', 'TEXT'], ['birthplace', 'TEXT'], ['birthplace_ta', 'TEXT'], ['lived_in', 'TEXT'], ['lived_in_ta', 'TEXT'], ['informed_by', 'TEXT'], ['contacts', 'TEXT']] };
 function migrate(db) {
   // Members can post too, so a post no longer needs a partner: rebuild posts with org_id optional (one-off).

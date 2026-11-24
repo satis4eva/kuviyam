@@ -2,6 +2,8 @@
 const { h, raw, gbp, dateLabel, MON } = require('../util');
 const { dt } = require('../i18n');
 const { L, avatar, art, csrfField, options, errors, shareBar, memberAvatar, tierBadge } = require('./parts');
+const ET = require('../eventtime');
+const { gbp: money } = require('../util');
 
 const timeAgo = (ctx, iso) => {
   const mins = Math.max(1, Math.round((Date.now() - Date.parse(iso)) / 60000));
@@ -77,12 +79,32 @@ function eventCard(ctx, e, withRsvp = true) {
   const href = `/events/${e.id}`;
   return h`<article class="card pad row top nowrap ev-card" id="event-${e.id}">
     <a class="date plain" href="${href}" aria-hidden="true" tabindex="-1"><b>${+dd}</b><span class="tiny">${MON[lang][+m - 1]} ${y.slice(2)}</span></a>
-    <div class="stack grow0"><h3><a class="plain ev-link" href="${href}">${L(e, 'title', lang)}</a></h3><div class="small muted">${L(e, 'place', lang)} · ${modeLabel(ctx, e)}</div>
+    <div class="stack grow0"><h3><a class="plain ev-link" href="${href}">${L(e, 'title', lang)}</a></h3>${e.start_time ? h`<div class="small"><b>${ET.timeLabel(e, t, lang)}</b></div>` : ''}<div class="small muted">${L(e, 'place', lang)} · ${modeLabel(ctx, e)}</div>
       ${L(e, 'details', lang) ? h`<p class="small clamp2">${L(e, 'details', lang)}</p>` : ''}
       <div class="small">${t('hostedBy')} <a href="/partners/${e.org_slug}">${L(e, 'org_name', lang)}</a></div>
       <div class="row between"><span class="small muted num">${t('going', { n: e.going })}</span>
-        <span class="row">${withRsvp ? (ctx.user ? postBtn(ctx, `/events/${e.id}/rsvp`, e.going_me ? t('youGoing') : t('rsvp'), e.going_me ? 'pri' : '') : h`<a class="btn sm" href="/login?next=${href}">${t('rsvp')}</a>`) : ''}<a class="btn sm${withRsvp ? ' ghost' : ' pri'}" href="${href}">${t('evDetails')}</a></span></div>
+        <span class="row">${withRsvp && !(e.price_pence > 0) ? (ctx.user ? postBtn(ctx, `/events/${e.id}/rsvp`, e.going_me ? t('youGoing') : t('rsvp'), e.going_me ? 'pri' : '') : h`<a class="btn sm" href="/login?next=${href}">${t('rsvp')}</a>`) : ''}${withRsvp && e.price_pence > 0 ? h`<a class="btn sm give" href="${href}">🎟 ${money(e.price_pence)}</a>` : ''}<a class="btn sm${withRsvp ? ' ghost' : ' pri'}" href="${href}">${t('evDetails')}</a></span></div>
     </div></article>`;
+}
+/* The joining link (Zoom, Teams, Meet…) is only shown to people going, the host team and admins. */
+function joinBox(ctx, d) {
+  const { t, user } = ctx; const e = d.event;
+  if (!e.join_url && e.mode !== 'online') return '';
+  if (!e.join_url) return d.canJoin ? h`<div class="joinbox"><b>${t('joinNoLinkYet')}</b></div>` : '';
+  if (!d.canJoin) return h`<div class="joinbox locked">🔒 ${t(user ? 'joinLockedUser' : 'joinLocked')}</div>`;
+  const live = d.phase === 'live' || d.phase === 'soon';
+  if (d.phase === 'over') return h`<div class="joinbox"><span class="muted">${t('joinOver')}</span></div>`;
+  return h`<div class="joinbox${live ? ' live' : ''}"><span>${live ? h`<b>🔴 ${t(d.phase === 'live' ? 'joinLiveNow' : 'joinSoon')}</b>` : h`<b>${t('joinYourLink')}</b><br><span class="small muted">${t('joinLater')}</span>`}</span>
+    <a class="btn ${live ? 'give' : 'pri'}" href="${e.join_url}" target="_blank" rel="noopener">▶ ${t('joinNow')}</a></div>`;
+}
+/* Paid events: price, tickets left, Buy tickets, and the tickets this person already has. */
+function ticketActions(ctx, d) {
+  const { t, user } = ctx; const e = d.event; const tk = d.tickets;
+  const mine = tk.mine.reduce((a, o) => a + o.qty, 0);
+  const soldOut = tk.left === 0;
+  return h`<span class="stack6 tk"><span><b class="mid">${money(e.price_pence)}</b> <span class="small muted">${t('perTicket')}</span>${tk.left !== null ? h` · <span class="small ${tk.left < 10 ? 'warn-t' : 'muted'}">${soldOut ? t('soldOut') : t('ticketsLeft', { n: tk.left })}</span>` : ''}</span>
+    ${mine ? h`<a class="small" href="/tickets/${tk.mine[tk.mine.length - 1].ref}">🎟 ${t('youHaveTickets', { n: mine })}</a>` : ''}</span>
+    ${soldOut ? '' : h`<a class="btn give" href="${user ? `/events/${e.id}/tickets` : `/login?next=/events/${e.id}/tickets`}">🎟 ${t(mine ? 'buyMoreTickets' : 'buyTickets')}</a>`}`;
 }
 function eventPage(ctx, d) {
   const { t, lang, user } = ctx; const e = d.event; const [y, m, dd] = e.starts_on.split('-');
@@ -90,12 +112,13 @@ function eventPage(ctx, d) {
   return h`<section class="narrow wide2 stack"><a class="small" href="/events">← ${t('eventsH')}</a>
     <article class="card ev-page">
       <div class="ev-hero"><span class="date big-date"><b>${+dd}</b><span>${MON[lang][+m - 1]} ${y}</span></span>
-        <div class="stack6"><h1>${title}</h1><span class="muted">${dateLabel(e.starts_on, lang)} · ${L(e, 'place', lang)}</span><span class="chip plain">${modeLabel(ctx, e)}</span></div></div>
+        <div class="stack6"><h1>${title}</h1><span class="muted">${dateLabel(e.starts_on, lang)}${e.start_time ? ' · ' + ET.timeLabel(e, t, lang) : ''} · ${L(e, 'place', lang)}</span><span class="chip plain">${modeLabel(ctx, e)}</span></div></div>
       <div class="pad stack">
+        ${joinBox(ctx, d)}
         ${L(e, 'details', lang) ? h`<p class="ev-details">${L(e, 'details', lang)}</p>` : ''}
         <div class="row nowrap">${avatar({ name: e.org_name, color: e.org_color })}<span class="small">${t('hostedBy')} <a href="/partners/${e.org_slug}"><b>${L(e, 'org_name', lang)}</b></a></span></div>
         <div class="row between ev-actions"><span class="num"><b>${t('going', { n: e.going })}</b></span>
-          <span class="row">${user ? postBtn(ctx, `/events/${e.id}/rsvp`, e.going_me ? t('youGoing') : t('rsvpGoing'), e.going_me ? 'pri' : 'pri') : h`<a class="btn pri" href="/login?next=/events/${e.id}">${t('rsvpGoing')}</a>`}
+          <span class="row">${d.tickets ? ticketActions(ctx, d) : user ? postBtn(ctx, `/events/${e.id}/rsvp`, e.going_me ? t('youGoing') : t('rsvpGoing'), e.going_me ? 'pri' : 'pri') : h`<a class="btn pri" href="/login?next=/events/${e.id}">${t('rsvpGoing')}</a>`}
           <a class="btn" href="/events/${e.id}/calendar.ics">📅 ${t('addToCalendar')}</a>
           ${e.place && e.mode !== 'online' ? h`<a class="btn" href="https://www.google.com/maps/search/?api=1&amp;query=${encodeURIComponent(e.place)}" target="_blank" rel="noopener">📍 ${t('directions')}</a>` : ''}</span></div>
       </div>
@@ -215,6 +238,40 @@ function dashPosts(ctx, d) {
     <div class="stack">${d.posts.length ? d.posts.map((p) => h`<div class="card pad row between"><div class="small grow"><b>${timeAgo(ctx, p.created_at)}</b> · ${L(p, 'text', lang).slice(0, 90)}</div><span class="tiny muted">♥ ${p.likes} · 💬 ${p.comments.length}</span>${postBtn(ctx, `/dashboard/posts/${p.id}/delete`, t('remove'), 'ghost')}</div>`) : h`<div class="card empty">${t('noPosts')}</div>`}</div>
   </section>`;
 }
+function timeFields(ctx, v) {
+  const { t, lang } = ctx;
+  return h`<div class="f3"><label class="f">${t('startTime')}<input type="time" name="start_time" value="${v.start_time || ''}"></label><label class="f">${t('endTime')}<input type="time" name="end_time" value="${v.end_time || ''}"></label>
+    <label class="f">${t('timeZone')}<select name="tz">${ET.ZONES.map(([id, en, ta]) => h`<option value="${id}"${(v.tz || ET.DEFAULT_TZ) === id ? raw(' selected') : ''}>${lang === 'ta' ? ta : en}</option>`)}</select></label></div>`;
+}
+/* One event, for the host team: who's going, spreadsheet, message everyone, time and joining link. */
+function dashEvent(ctx, d) {
+  const { t, lang } = ctx; const e = d.event; const { dashHead, tabs } = require('./manage');
+  return h`${dashHead(ctx, d.org)}${tabs(ctx, 'events')}
+  <section class="stack"><a class="small" href="/dashboard/events">← ${t('tEvents')}</a>
+    <div class="sec-h"><div><h1>${L(e, 'title', lang)}</h1><p class="muted">${dateLabel(e.starts_on, lang)}${e.start_time ? ' · ' + ET.timeLabel(e, t, lang) : ''} · ${L(e, 'place', lang)} · <span class="chip ${e.status === 'live' ? 'good' : 'plain'}">${t('st_' + e.status)}</span></p></div>
+      ${e.status === 'live' ? h`<a class="btn" href="/events/${e.id}">${t('openEvent')}</a>` : ''}</div></section>
+  <section class="split">
+    <div class="card tw"><div class="pad row between"><h2>${t('whoGoing', { n: d.people.length })}</h2>${d.people.length ? h`<a class="btn sm" href="/dashboard/events/${e.id}/attendees.csv">⬇ ${t('downloadList')}</a>` : ''}</div>
+      <table><thead><tr><th>${t('name')}</th><th>${t('email')}</th><th>${t('homeTown')}</th><th>${t('rsvpDate')}</th></tr></thead><tbody>
+      ${d.people.length ? d.people.map((p) => h`<tr><td><a class="row nowrap plain" href="/members/${p.id}">${memberAvatar(p, 'sm')}<b>${p.name}</b></a></td><td class="tiny"><a href="mailto:${p.email}">${p.email}</a></td><td class="small">${p.home_town || ''}</td><td class="tiny muted">${p.created_at ? dateLabel(p.created_at, lang) : ''}${p.tickets ? h` · 🎟 ${p.tickets}` : ''}</td></tr>`)
+        : h`<tr><td colspan="4" class="empty">${t('nobodyGoingYet')}</td></tr>`}</tbody></table></div>
+    <div class="stack">
+      ${d.sales ? h`<div class="card pad stack"><h3>${t('ticketSales')}</h3>
+        <div class="row between"><span class="muted">${t('ticketsSoldOf', { n: d.sales.tickets, c: e.capacity || '∞' })}</span><b>${money(d.sales.gross)}</b></div>
+        <div class="row between"><span class="muted">${t('platformFeePct', { p: (d.bps / 100).toFixed(2).replace(/\.?0+$/, '') })}</span><span>− ${money(d.sales.commission)}</span></div>
+        <div class="row between"><b>${t('yourShare')}</b><b>${money(d.sales.net)}</b></div>
+        <div class="row between small"><span class="muted">${t('toBePaid')}</span><span>${money(d.sales.owed)}</span></div>
+        <a class="small" href="/dashboard/payouts">${t('seePayouts')}</a></div>` : ''}
+      <form class="card pad form" method="post" action="/dashboard/events/${e.id}/message">${csrfField(ctx)}<h3>${t('msgEveryone')}</h3><p class="tiny muted">${t('msgEveryoneP')}</p>
+        <label class="f sr" for="evmsg">${t('message')}</label><textarea id="evmsg" name="text" rows="4" maxlength="1500" required placeholder="${t('msgEveryonePh')}"></textarea>
+        <button class="btn pri"${d.people.length ? '' : raw(' disabled')}>${t('sendToAll', { n: d.people.length })}</button></form>
+      <form class="card pad form" method="post" action="/dashboard/events/${e.id}/details">${csrfField(ctx)}<h3>${t('timeAndLink')}</h3><p class="tiny muted">${t('timeAndLinkP')}</p>
+        ${timeFields(ctx, e)}
+        <label class="f">${t('joinUrl')}<input name="join_url" value="${e.join_url || ''}" inputmode="url" placeholder="https://zoom.us/j/…"><span class="tiny muted">${t('joinUrlHint')}</span></label>
+        <button class="btn">${t('save')}</button></form>
+    </div>
+  </section>`;
+}
 function dashEvents(ctx, d) {
   const { t, lang } = ctx; const v = d.values; const { dashHead, tabs } = require('./manage');
   const modes = ['inperson', 'online', 'tickets', 'volunteers'];
@@ -224,11 +281,14 @@ function dashEvents(ctx, d) {
       <div class="f2"><label class="f">${t('eventNameEn')}<input name="title" value="${v.title || ''}" maxlength="160"></label><label class="f">${t('eventNameTa')}<input name="title_ta" value="${v.title_ta || ''}" lang="ta" maxlength="160"></label></div>
       <div class="f2"><label class="f">${t('date')} *<input type="date" name="starts_on" value="${v.starts_on || ''}" required></label><label class="f">${t('type')} *<select name="mode">${modes.map((m) => h`<option value="${m}"${v.mode === m ? raw(' selected') : ''}>${t('m_' + m, { p: '' })}</option>`)}</select></label></div>
       <div class="f2"><label class="f">${t('placeEn')} *<input name="place" value="${v.place || ''}" required maxlength="160" placeholder="${t('placePh')}"></label><label class="f">${t('placeTa')}<input name="place_ta" value="${v.place_ta || ''}" lang="ta" maxlength="160"></label></div>
-      <label class="f">${t('ticketPrice')}<input name="price" value="${v.price || ''}" maxlength="30" placeholder="£35"></label>
+      ${timeFields(ctx, v)}
+      <label class="f">${t('joinUrl')}<input name="join_url" value="${v.join_url || ''}" inputmode="url" placeholder="https://zoom.us/j/…"><span class="tiny muted">${t('joinUrlHint')}</span></label>
+      <div class="f2"><label class="f">${t('ticketPrice')}<input name="price" value="${v.price || ''}" maxlength="30" placeholder="35" inputmode="decimal"><span class="tiny muted">${t('ticketPriceHint', { p: (ctx.commissionPct || '5') })}</span></label>
+        <label class="f">${t('capacity')}<input name="capacity" value="${v.capacity || ''}" inputmode="numeric" placeholder="120"><span class="tiny muted">${t('capacityHint')}</span></label></div>
       <div class="f2"><label class="f">${t('detailsEn')}<textarea name="details" maxlength="1500">${v.details || ''}</textarea></label><label class="f">${t('detailsTa')}<textarea name="details_ta" lang="ta" maxlength="1500">${v.details_ta || ''}</textarea></label></div>
       <div><button class="btn pri">${t('sendApproval')}</button></div></form>
     <div class="card tw"><table><thead><tr><th>${t('date')}</th><th>${t('eventNameEn')}</th><th>${t('thStatus')}</th><th class="r">${t('goingH')}</th></tr></thead><tbody>
-      ${d.events.map((e) => h`<tr><td>${dateLabel(e.starts_on, lang)}</td><td>${L(e, 'title', lang)}${e.reason ? h`<div class="tiny muted">${t('reason')}: ${e.reason}</div>` : ''}</td><td><span class="chip ${e.status === 'live' ? 'good' : e.status === 'rejected' ? 'bad' : 'plain'}">${t('st_' + e.status)}</span></td><td class="r">${e.going}</td></tr>`)}
+      ${d.events.map((e) => h`<tr><td>${dateLabel(e.starts_on, lang)}</td><td><a href="/dashboard/events/${e.id}"><b>${L(e, 'title', lang)}</b></a>${e.reason ? h`<div class="tiny muted">${t('reason')}: ${e.reason}</div>` : ''}</td><td><span class="chip ${e.status === 'live' ? 'good' : e.status === 'rejected' ? 'bad' : 'plain'}">${t('st_' + e.status)}</span></td><td class="r"><a class="btn sm" href="/dashboard/events/${e.id}">${t('whoGoing', { n: e.going })}</a></td></tr>`)}
       ${d.events.length ? '' : h`<tr><td colspan="4" class="empty">${t('noEvents')}</td></tr>`}</tbody></table></div>
   </section>`;
 }
@@ -256,4 +316,4 @@ function postPage(ctx, d) {
   return h`<section class="narrow wide2 stack"><a class="small" href="/community">← ${ctx.t('backToFeed')}</a>${postCard(ctx, d.post)}</section>`;
 }
 
-module.exports = { hubTabs, timeAgo, postPage, postCard, eventCard, eventPage, feed, events, memorials, memorial, memorialForm, dashPosts, dashEvents, adminMemorial, postBtn };
+module.exports = { hubTabs, timeAgo, postPage, postCard, eventCard, eventPage, dashEvent, feed, events, memorials, memorial, memorialForm, dashPosts, dashEvents, adminMemorial, postBtn };

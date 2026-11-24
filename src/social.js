@@ -279,8 +279,8 @@ function registerSocial(route, H) {
   /* ---------------- notifications ---------------- */
   route('GET', '/notifications', (ctx) => {
     if (!requireUser(ctx)) return;
-    const list = db.prepare(`SELECT n.*, u.name AS actor_name, u.avatar_file_id AS actor_avatar, p.text AS post_text FROM notifications n
-      LEFT JOIN users u ON u.id = n.actor_id LEFT JOIN posts p ON p.id = n.target_id AND n.kind IN ('like','comment')
+    const list = db.prepare(`SELECT n.*, u.name AS actor_name, u.avatar_file_id AS actor_avatar, p.text AS post_text, ev.title AS event_title FROM notifications n
+      LEFT JOIN users u ON u.id = n.actor_id LEFT JOIN posts p ON p.id = n.target_id AND n.kind IN ('like','comment') LEFT JOIN events ev ON ev.id = n.target_id AND n.kind = 'rsvp'
       WHERE n.user_id = ? ORDER BY n.id DESC LIMIT 100`).all(ctx.user.id);
     db.prepare('UPDATE notifications SET read_at = ? WHERE user_id = ? AND read_at IS NULL').run(nowIso(), ctx.user.id);
     page(ctx, { title: ctx.t('notesH'), active: 'notes', body: S.notifications(ctx, { list }) });

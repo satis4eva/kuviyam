@@ -22,11 +22,17 @@ const providers = {
   }
 };
 
-function provider() {
-  const name = process.env.PAYMENT_PROVIDER || 'test';
+/*
+ * Two separate gateways:
+ *   'donations' (PAYMENT_PROVIDER)        Kuviyam's own account: every donation goes to Kuviyam.
+ *   'tickets'   (TICKET_PAYMENT_PROVIDER) the platform's account: event ticket money, from which the platform
+ *                                         keeps its commission and pays the rest to the event organiser.
+ */
+function provider(purpose = 'donations') {
+  const name = (purpose === 'tickets' ? process.env.TICKET_PAYMENT_PROVIDER : process.env.PAYMENT_PROVIDER) || 'test';
   const p = providers[name];
   if (!p) throw new Error(`Unknown PAYMENT_PROVIDER "${name}"`);
-  return { name, ...p };
+  return { name, purpose, ...p };
 }
 
 module.exports = { provider };

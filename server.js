@@ -39,7 +39,9 @@ if (process.env.SEED_DEMO === '1') {
   }
 }
 
-const server = http.createServer(createApp(db));
+const app = createApp(db);
+app.outbox.start(); // sends queued emails: confirmations, reminders, partner summaries
+const server = http.createServer(app);
 server.requestTimeout = 60_000;
 const port = Number(process.env.PORT) || 3000;
 server.listen(port, () => console.log(`Kuviyam running on port ${port}`));

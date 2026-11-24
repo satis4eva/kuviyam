@@ -10,7 +10,7 @@ const PORT = 4100 + Math.floor(Math.random() * 500);
 const BASE = `http://127.0.0.1:${PORT}`;
 const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'kuviyam-test-'));
 const SETUP_CODE = 'test-setup-code-123';
-const env = { ...process.env, PORT: String(PORT), DB_FILE: path.join(dir, 'test.db'), SEED_DEMO: '1', DEMO_MODE: '1', DEMO_PASSWORD: 'demo-pass-2026', SETUP_CODE, PAYMENT_PROVIDER: 'test' };
+const env = { ...process.env, PORT: String(PORT), DB_FILE: path.join(dir, 'test.db'), SEED_DEMO: '1', DEMO_MODE: '1', DEMO_PASSWORD: 'demo-pass-2026', SETUP_CODE, PAYMENT_PROVIDER: 'test', MAIL_PROVIDER: 'log', OUTBOX_INTERVAL_MS: '300' };
 const PDF = Buffer.from('%PDF-1.4\n1 0 obj<<>>endobj\ntrailer<<>>\n%%EOF\n');
 
 class Client {
@@ -239,6 +239,65 @@ async function step(name, fn) { await fn(); passed++; console.log('  ✓', name)
       assert.match((await anon.get('/events')).text, new RegExp(`href="/events/${eid}"`));
       const ics = await anon.get(`/events/${eid}/calendar.ics`); assert.match(ics.type, /text\/calendar/); assert.match(ics.text, /SUMMARY:Kilinochchi prize day/);
       assert.match((await anon.get('/')).text, /href="\/events\/\d+"/);
+    });
+    await step('online events: private joining link, attendee list, messages and emails', async () => {
+      const future = new Date(Date.now() + 5 * 864e5).toISOString().slice(0, 10);
+      assert.equal((await partner.post('/dashboard/events', { title: 'Zoom Q&A', starts_on: future, place: 'Online', mode: 'online', join_url: 'javascript:alert(1)' })).status, 400);
+      await partner.post('/dashboard/events', { title: 'Zoom Q&A with teachers', starts_on: future, start_time: '18:30', end_time: '19:30', tz: 'Asia/Colombo', place: 'Online', mode: 'online', join_url: 'https://zoom.us/j/123456789' });
+      const q = await admin.get('/admin'); const eid = /\/admin\/events\/(\d+)\/approve/.exec(q.text)[1];
+      await admin.post(`/admin/events/${eid}/approve`, {});
+      const pub = (await anon.get(`/events/${eid}`)).text;
+      assert.match(pub, /6:30 pm – 7:30 pm \(Sri Lanka time\)/); assert.doesNotMatch(pub, /zoom\.us/); assert.match(pub, /to get the joining link/);
+      await member.post(`/events/${eid}/rsvp`, {});
+      assert.match((await member.get(`/events/${eid}`)).text, /href="https:\/\/zoom\.us\/j\/123456789"/);
+      assert.match((await member.get(`/events/${eid}/calendar.ics`)).text, /URL:https:\/\/zoom\.us/);
+      const dash = (await partner.get(`/dashboard/events/${eid}`)).text; assert.match(dash, /Who&#39;s going \(1\)/);
+      const csv = await partner.get(`/dashboard/events/${eid}/attendees.csv`); assert.match(csv.type, /text\/csv/); assert.match(String(csv.text), /member@example\.com|@/);
+      assert.equal((await member.get(`/dashboard/events/${eid}`)).status === 200, false);
+      assert.match((await partner.get('/notifications')).text, /is going to your event/);
+      await partner.post(`/dashboard/events/${eid}/message`, { text: 'Please join 5 minutes early.' });
+      assert.match((await member.get('/messages')).text, /join 5 minutes early/);
+      await new Promise((r) => setTimeout(r, 1200));
+      const mails = (await admin.get('/admin/emails')).text;
+      assert.match(mails, /You’re going: Zoom Q&amp;A with teachers|You're going: Zoom Q&amp;A with teachers|You&#39;re going: Zoom Q&amp;A with teachers/);
+      assert.match(mails, /Message about Zoom Q&amp;A with teachers/); assert.match(mails, /Reminder: 1 hour before/);
+      await member.post(`/events/${eid}/rsvp`, {}); // changed their mind: reminders dropped
+      assert.match((await admin.get('/admin/emails')).text, /Not needed/);
+      await partner.post(`/dashboard/events/${eid}/details`, { start_time: '19:00', tz: 'Europe/London', join_url: 'https://teams.microsoft.com/l/meetup-join/abc' });
+      assert.match((await anon.get(`/events/${eid}`)).text, /7:00 pm \(London time\)/);
+    });
+    await step('paid tickets: platform gateway, commission, organiser payouts, sold out', async () => {
+      const future = new Date(Date.now() + 8 * 864e5).toISOString().slice(0, 10);
+      await partner.post('/dashboard/events', { title: 'Charity dinner', starts_on: future, start_time: '19:00', place: 'Harrow', mode: 'tickets', price: '20', capacity: '3' });
+      const q = await admin.get('/admin'); const eid = /\/admin\/events\/(\d+)\/approve/.exec(q.text)[1];
+      await admin.post(`/admin/events/${eid}/approve`, {});
+      assert.match((await anon.get(`/events/${eid}`)).text, /£20/);
+      assert.equal((await member.post(`/events/${eid}/rsvp`, {})).location, `/events/${eid}/tickets`); // paid: no free RSVP
+      await member.get(`/events/${eid}/tickets`);
+      assert.equal((await member.post(`/events/${eid}/tickets`, { qty: '4' })).status, 400); // only 3 left
+      const r = await member.post(`/events/${eid}/tickets`, { qty: '2', name: 'Member One', email: 'member@example.com' });
+      assert.match(r.location, /^\/tickets\/pay\/KT-/);
+      const paid = await member.post(r.location, {});
+      assert.match(paid.location, /^\/tickets\/KT-/);
+      assert.match((await member.get(paid.location)).text, /£40/);
+      assert.match((await member.get(`/events/${eid}`)).text, /You have 2 ticket/);
+      const dash = (await partner.get(`/dashboard/events/${eid}`)).text;
+      assert.match(dash, /2 sold of 3/); assert.match(dash, /£38/); // 5% platform fee on £40
+      await admin.post('/admin/tickets/commission', { percent: '10' });
+      const buyer2 = new Client(); await buyer2.get('/register'); await buyer2.post('/register', { name: 'Buyer Two', email: 'buyer2@example.com', password: 'buyer-pass-123', next: '/' });
+      await buyer2.get(`/events/${eid}/tickets`);
+      const r2 = await buyer2.post(`/events/${eid}/tickets`, { qty: '1' }); await buyer2.post(r2.location, {});
+      assert.match((await anon.get(`/events/${eid}`)).text, /Sold out/);
+      const adm = (await admin.get('/admin/tickets')).text;
+      assert.match(adm, /£56/); // owed: 38 + 18
+      assert.equal((await admin.post(`/admin/tickets/payout/1`, { amount: '1.00', reference: 'X' })).status, 303);
+      const orgId = /\/admin\/tickets\/payout\/(\d+)/.exec(adm)[1];
+      await admin.post(`/admin/tickets/payout/${orgId}`, { amount: '50.00', reference: 'BACS 1' }); // wrong amount refused
+      assert.doesNotMatch((await partner.get('/dashboard/payouts')).text, /BACS 1/);
+      await admin.post(`/admin/tickets/payout/${orgId}`, { amount: '56.00', reference: 'BACS 2' });
+      const pp = (await partner.get('/dashboard/payouts')).text; assert.match(pp, /BACS 2/); assert.match(pp, /£56/);
+      assert.equal((await member.get('/admin/tickets')).status, 403);
+      await admin.post('/admin/tickets/commission', { percent: '5' });
     });
     await step('memorials: approval, candles, condolences, giving in memory', async () => {
       await member.get('/memorials/new');
