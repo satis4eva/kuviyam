@@ -44,6 +44,16 @@ function home(ctx, d) {
   const top = b.top; const ev = b.nextEvent;
   const BI = (en, ta) => ({ en, ta });
   const evDate = ev ? ev.starts_on.split('-') : null;
+  const counts = ctx.counts || {};
+  const mine = user
+    ? homeBox(ctx, { href: counts.msgs ? '/messages' : counts.notes ? '/notifications' : `/members/${user.id}`, key: 'me', icon: '⭐', ...BI('Your space', 'உங்கள் பகுதி'), cls: 'hb-me',
+        band: h`<span class="hb-mosaic">${memberAvatar(user, 'lg')}</span>`,
+        extra: h`<b>${t('hiName', { n: String(user.name).split(' ')[0] })}</b>`,
+        live: counts.msgs || counts.notes ? t('hbMine', { m: counts.msgs || 0, n: counts.notes || 0 }) : user.role === 'admin' || user.orgs.some((o) => o.status === 'verified') ? t('hbProfile') : user.tier === 'free' ? t('hbUpgrade') : t('hbMember', { t: t('tier_' + user.tier) }) })
+    : homeBox(ctx, { href: '/membership', key: 'join', icon: '⭐', ...BI('Join free', 'இலவசமாக இணைக'), cls: 'hb-join', band: h`<span class="hb-emoji">🙌</span>`, live: t('hbJoin') });
+  const evBox = homeBox(ctx, { href: ev ? `/events/${ev.id}` : '/events', key: 'events', icon: '📅', ...BI('Events', 'நிகழ்வுகள்'),
+      band: ev ? h`<span class="hb-date"><b>${+evDate[2]}</b><span>${MON[lang][+evDate[1] - 1]}</span></span>` : h`<span class="hb-emoji">🎉</span>`,
+      live: ev ? h`<b>${L(ev, 'title', lang)}</b>${ev.going ? h` · ${t('going', { n: ev.going })}` : ''}` : t('hbNoEvents') });
   const boxes = [
     homeBox(ctx, { href: top ? `/projects/${top.id}` : '/projects', key: 'projects', icon: '🤝', ...BI('Projects', 'திட்டங்கள்'),
       band: art(top ? top.id : 1, top ? top.cause : 'Education'),
@@ -51,9 +61,7 @@ function home(ctx, d) {
       live: t('hbProjects', { n: d.projects }) }),
     homeBox(ctx, { href: '/sponsor', key: 'sponsor', icon: '🎓', ...BI('Sponsor a student', 'மாணவர் அனுசரணை'), band: art(1, 'Libraries'),
       live: b.waiting.n ? t('hbWaiting', { n: b.waiting.n, p: gbp(b.waiting.m) }) : t('hbAllSponsored', { n: d.sponsored }) }),
-    homeBox(ctx, { href: ev ? `/events/${ev.id}` : '/events', key: 'events', icon: '📅', ...BI('Events', 'நிகழ்வுகள்'),
-      band: ev ? h`<span class="hb-date"><b>${+evDate[2]}</b><span>${MON[lang][+evDate[1] - 1]}</span></span>` : h`<span class="hb-emoji">🎉</span>`,
-      live: ev ? h`<b>${L(ev, 'title', lang)}</b>${ev.going ? h` · ${t('going', { n: ev.going })}` : ''}` : t('hbNoEvents') }),
+    mine,
     homeBox(ctx, { href: '/members', key: 'people', icon: '👥', ...BI('People', 'மக்கள்'),
       band: b.faces.length ? h`<span class="hb-mosaic">${b.faces.slice(0, 6).map((f) => memberAvatar(f, 'lg'))}</span>` : h`<span class="hb-emoji">👋</span>`,
       live: b.towns.length ? t('hbPeopleTowns', { n: b.members, p: b.towns.join(', ') }) : t('hbPeople', { n: b.members }) }),
@@ -66,13 +74,6 @@ function home(ctx, d) {
       band: b.spent ? h`<span class="hb-big num">${lkr(b.spent.lkr.s, lang)}</span>` : h`<span class="hb-emoji">🧾</span>`,
       live: b.spent ? t('hbSpent', { a: lkr(b.spent.lkr.s, lang), m: monthLabel(b.spent.month, lang), n: b.spent.lkr.docs }) : t('hbSpendNone') })
   ];
-  const counts = ctx.counts || {};
-  const mine = user
-    ? homeBox(ctx, { href: counts.msgs ? '/messages' : counts.notes ? '/notifications' : `/members/${user.id}`, key: 'me', icon: '⭐', ...BI('Your space', 'உங்கள் பகுதி'), cls: 'hb-me',
-        band: h`<span class="hb-mosaic">${memberAvatar(user, 'lg')}</span>`,
-        extra: h`<b>${t('hiName', { n: String(user.name).split(' ')[0] })}</b>`,
-        live: counts.msgs || counts.notes ? t('hbMine', { m: counts.msgs || 0, n: counts.notes || 0 }) : user.role === 'admin' || user.orgs.some((o) => o.status === 'verified') ? t('hbProfile') : user.tier === 'free' ? t('hbUpgrade') : t('hbMember', { t: t('tier_' + user.tier) }) })
-    : homeBox(ctx, { href: '/membership', key: 'join', icon: '⭐', ...BI('Join free', 'இலவசமாக இணைக'), cls: 'hb-join', band: h`<span class="hb-emoji">🙌</span>`, live: t('hbJoin') });
   return h`
   <section class="welcome">
     <div class="w-text">
@@ -85,7 +86,7 @@ function home(ctx, d) {
       ${user ? '' : h`<a class="btn pri big-btn" href="/membership">${t('joinFree')}</a>`}
     </div>
   </section>
-  <section class="hgrid" aria-label="${t('homeBoxes')}">${feedBox(ctx, d)}${mine}${boxes}</section>
+  <section class="hgrid" aria-label="${t('homeBoxes')}">${feedBox(ctx, d)}${evBox}${boxes}</section>
   <section class="w-stats card pad"><span><b class="num">${gbp(d.raised)}</b> ${t('stRaised')}</span><span><b class="num">${d.sponsored}</b> ${t('stStudents')}</span><span><b class="num">${d.partners}</b> ${t('stPartners')}</span><span><b class="num">${d.projects}</b> ${t('stProjects')}</span></section>
   <section><div class="sec-h"><h2>${t('urgentNeeds')}</h2><a href="/projects">${t('allProjects')}</a></div>
     <div class="grid g3">${d.urgent.map((p) => projectCard(ctx, p))}</div></section>
