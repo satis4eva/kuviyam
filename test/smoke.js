@@ -197,6 +197,11 @@ async function step(name, fn) { await fn(); passed++; console.log('  ✓', name)
     const MP4 = Buffer.concat([Buffer.from([0, 0, 0, 0x18]), Buffer.from('ftypmp42'), Buffer.alloc(64)]);
     const partner = new Client(); await partner.get('/login'); await partner.post('/login', { email: 'partner@demo.kuviyam.org', password: 'demo-pass-2026' });
     const member = new Client(); await member.get('/register'); await member.post('/register', { name: 'Ravi Member', email: 'ravi@example.org', password: 'ravi-password-1' });
+    await step('worldwide: diaspora countries and Tamil Nadu districts', async () => {
+      const proj = (await partner.get('/dashboard/projects/new')).text;
+      assert.match(proj, /<optgroup label="India \(Tamil Nadu and Puducherry\)">/); assert.match(proj, /value="Thanjavur"/); assert.match(proj, /value="Malaysia"/);
+      assert.match((await member.get('/join?new=1')).text, /value="Mauritius"/);
+    });
     await step('community feed shows partner posts in both languages', async () => {
       const f = await anon.get('/community'); assert.equal(f.status, 200); assert.match(f.text, /water tank at Haputale/); assert.match(f.text, /Log in to like/);
       const ta = new Client(); await ta.get('/lang/ta?back=/'); assert.match((await ta.get('/community')).text, /அப்புத்தளையில்/);
@@ -264,7 +269,7 @@ async function step(name, fn) { await fn(); passed++; console.log('  ✓', name)
       await member.post(`/events/${eid}/rsvp`, {}); // changed their mind: reminders dropped
       assert.match((await admin.get('/admin/emails')).text, /Not needed/);
       await partner.post(`/dashboard/events/${eid}/details`, { start_time: '19:00', tz: 'Europe/London', join_url: 'https://teams.microsoft.com/l/meetup-join/abc' });
-      assert.match((await anon.get(`/events/${eid}`)).text, /7:00 pm \(London time\)/);
+      assert.match((await anon.get(`/events/${eid}`)).text, /7:00 pm \(UK time\)/);
     });
     await step('paid tickets: platform gateway, commission, organiser payouts, sold out', async () => {
       const future = new Date(Date.now() + 8 * 864e5).toISOString().slice(0, 10);

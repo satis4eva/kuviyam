@@ -2,9 +2,16 @@
 /* Event times: entered in the event's own time zone, turned into exact moments for reminders and the Join button. */
 
 const ZONES = [
-  ['Europe/London', 'London', 'லண்டன்'], ['Asia/Colombo', 'Sri Lanka', 'இலங்கை'], ['Asia/Kolkata', 'India', 'இந்தியா'],
-  ['America/Toronto', 'Toronto', 'ரொறன்ரோ'], ['Europe/Paris', 'Paris', 'பாரிஸ்'], ['Europe/Zurich', 'Zurich', 'சூரிச்'],
-  ['Europe/Berlin', 'Germany', 'ஜேர்மனி'], ['Europe/Oslo', 'Norway', 'நோர்வே'], ['Australia/Sydney', 'Sydney', 'சிட்னி'], ['Australia/Melbourne', 'Melbourne', 'மெல்பேர்ண்']
+  ['Europe/London', 'UK', 'ஐக்கிய இராச்சியம்'], ['Asia/Colombo', 'Sri Lanka', 'இலங்கை'], ['Asia/Kolkata', 'India', 'இந்தியா'],
+  ['Asia/Kuala_Lumpur', 'Malaysia', 'மலேசியா'], ['Asia/Singapore', 'Singapore', 'சிங்கப்பூர்'], ['America/Toronto', 'Toronto / New York', 'ரொறன்ரோ / நியூயோர்க்'],
+  ['America/Vancouver', 'Vancouver / Los Angeles', 'வன்கூவர் / லொஸ் ஏஞ்சல்ஸ்'], ['Europe/Paris', 'Paris / Central Europe', 'பாரிஸ் / மத்திய ஐரோப்பா'],
+  ['Europe/Zurich', 'Switzerland', 'சுவிற்சர்லாந்து'], ['Europe/Berlin', 'Germany', 'ஜேர்மனி'], ['Europe/Oslo', 'Norway', 'நோர்வே'], ['Europe/Copenhagen', 'Denmark', 'டென்மார்க்'],
+  ['Europe/Stockholm', 'Sweden', 'சுவீடன்'], ['Europe/Amsterdam', 'Netherlands', 'நெதர்லாந்து'], ['Europe/Rome', 'Italy', 'இத்தாலி'], ['Europe/Dublin', 'Ireland', 'அயர்லாந்து'],
+  ['Asia/Dubai', 'UAE / Oman', 'ஐக்கிய அரபு அமீரகம் / ஓமான்'], ['Asia/Qatar', 'Qatar / Bahrain', 'கத்தார் / பஹ்ரைன்'], ['Asia/Riyadh', 'Saudi Arabia / Kuwait', 'சவூதி / குவைத்'],
+  ['Indian/Mauritius', 'Mauritius / Réunion / Seychelles', 'மொரிசியஸ் / ரீயூனியன் / சீசெல்சு'], ['Africa/Johannesburg', 'South Africa', 'தென்னாபிரிக்கா'],
+  ['Asia/Yangon', 'Myanmar', 'மியான்மார்'], ['Asia/Bangkok', 'Thailand / Indonesia (Jakarta)', 'தாய்லாந்து / இந்தோனேசியா'], ['Asia/Tokyo', 'Japan', 'ஜப்பான்'],
+  ['Australia/Perth', 'Perth', 'பேர்த்'], ['Australia/Sydney', 'Sydney / Melbourne', 'சிட்னி / மெல்பேர்ண்'], ['Pacific/Auckland', 'New Zealand', 'நியூசிலாந்து'],
+  ['Pacific/Fiji', 'Fiji', 'பிஜி'], ['America/Guyana', 'Guyana', 'கயானா'], ['America/Port_of_Spain', 'Trinidad / Guadeloupe / Martinique', 'திரினிடாட் / குவாதலூப்பு / மர்த்தினிக்கு']
 ];
 const ZONE_IDS = ZONES.map((z) => z[0]);
 const DEFAULT_TZ = 'Europe/London';

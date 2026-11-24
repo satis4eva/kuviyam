@@ -1,7 +1,7 @@
 'use strict';
 const { h, raw, gbp, lkr, monthLabel, dateLabel, RATE_LKR_PER_GBP } = require('../util');
 const { dt, CAUSES, CATEGORIES, DISTRICTS } = require('../i18n');
-const { L, avatar, csrfField, options, errors } = require('./parts');
+const { L, avatar, csrfField, options, errors, areaOptions, placeLabel } = require('./parts');
 
 const statusChip = (ctx, s) => h`<span class="chip ${s === 'published' || s === 'verified' || s === 'paid' || s === 'live' ? 'good' : s === 'returned' || s === 'suspended' || s === 'failed' ? 'bad' : 'plain'}">${ctx.t('st_' + s)}</span>`;
 const postBtn = (ctx, action, label, cls = '') => h`<form method="post" action="${action}" class="inline">${csrfField(ctx)}<button class="btn sm ${cls}">${label}</button></form>`;
@@ -40,7 +40,7 @@ function newProject(ctx, d) {
   <form class="card pad form measure-w" method="post" action="/dashboard/projects">${csrfField(ctx)}
     <h2>${t('newProjectH')}</h2><p class="tiny muted">${t('bothLang')}</p>${errors(ctx, d.errors)}
     <div class="f2"><label class="f">${t('titleEn')}<input name="title" value="${v.title || ''}" maxlength="160"></label><label class="f">${t('titleTa')}<input name="title_ta" value="${v.title_ta || ''}" lang="ta" maxlength="160"></label></div>
-    <div class="f2"><label class="f">${t('cause')}<select name="cause">${options(CAUSES, v.cause, lang)}</select></label><label class="f">${t('district')}<select name="district">${options(DISTRICTS, v.district || 'Kilinochchi', lang)}</select></label></div>
+    <div class="f2"><label class="f">${t('cause')}<select name="cause">${options(CAUSES, v.cause, lang)}</select></label><label class="f">${t('district')}<select name="district">${areaOptions(v.district || 'Kilinochchi', lang)}</select></label></div>
     <div class="f2"><label class="f">${t('goal')}<input name="goal" inputmode="decimal" value="${v.goal || ''}" required></label><label class="f">${t('endDate')}<input name="ends_on" type="date" value="${v.ends_on || ''}"></label></div>
     <div class="f2"><label class="f">${t('buysEn')}<textarea name="needs">${v.needs || ''}</textarea></label><label class="f">${t('buysTa')}<textarea name="needs_ta" lang="ta">${v.needs_ta || ''}</textarea></label></div>
     <label class="check"><input type="checkbox" name="urgent" value="1"${v.urgent ? raw(' checked') : ''}> ${t('markUrgent')}</label>
@@ -78,7 +78,7 @@ function reportEdit(ctx, d) {
     </tbody></table><p class="pad tiny muted">${t('noProofFlag')}</p></div>
     ${editable ? h`<form class="card pad form" method="post" action="/dashboard/reports/${r.id}/expenses" enctype="multipart/form-data">${csrfField(ctx)}<h3>${t('addExp')}</h3>
       <div class="f2"><label class="f">${t('whatForEn')}<input name="description" required maxlength="200" placeholder="${t('whatForPh')}"></label><label class="f">${t('whatForTa')}<input name="description_ta" lang="ta" maxlength="200"></label></div>
-      <div class="f2"><label class="f">${t('category')}<select name="category">${options(CATEGORIES, '', lang)}</select></label><label class="f">${t('district')}<select name="district">${options(DISTRICTS, d.org.place, lang)}</select></label></div>
+      <div class="f2"><label class="f">${t('category')}<select name="category">${options(CATEGORIES, '', lang)}</select></label><label class="f">${t('district')}<select name="district">${areaOptions(d.org.place, lang)}</select></label></div>
       <div class="f2"><label class="f">${t('amountLkr')}<input name="amount_lkr" type="number" min="1" step="1" required></label><label class="f">${t('receiptFile')}<input type="file" name="receipt" accept=".pdf,image/jpeg,image/png,image/webp"></label></div>
       <div><button class="btn pri">${t('addExpBtn')}</button></div></form>` : h`<div class="card pad small muted">${t('reportLocked')}</div>`}
   </section>`;
@@ -94,7 +94,7 @@ function students(ctx, d) {
     </tbody></table></div>
     <form class="card pad form" method="post" action="/dashboard/students">${csrfField(ctx)}<h3>${t('addStudent')}</h3><p class="tiny muted">${t('studentPrivacy')}</p>${errors(ctx, d.errors)}
       <div class="f2"><label class="f">${t('firstNameEn')}<input name="name" required maxlength="40"></label><label class="f">${t('firstNameTa')}<input name="name_ta" lang="ta" maxlength="40"></label></div>
-      <div class="f2"><label class="f">${t('gradeH')}<input name="grade" type="number" min="1" max="13" required></label><label class="f">${t('district')}<select name="district">${options(DISTRICTS, d.org.place, lang)}</select></label></div>
+      <div class="f2"><label class="f">${t('gradeH')}<input name="grade" type="number" min="1" max="13" required></label><label class="f">${t('district')}<select name="district">${areaOptions(d.org.place, lang)}</select></label></div>
       <div class="f2"><label class="f">${t('dreamEn')}<input name="dream" maxlength="120"></label><label class="f">${t('dreamTa')}<input name="dream_ta" lang="ta" maxlength="120"></label></div>
       <label class="f">${t('perMonthH')}<input name="monthly" inputmode="decimal" required value="15"></label>
       <div><button class="btn pri">${t('addStudentBtn')}</button></div></form>

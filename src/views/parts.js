@@ -1,6 +1,6 @@
 'use strict';
 const { h, raw, gbp } = require('../util');
-const { dt } = require('../i18n');
+const { dt, AREA_GROUPS, AREA_COUNTRY } = require('../i18n');
 
 const L = (row, field, lang) => (lang === 'ta' && row[field + '_ta'] ? row[field + '_ta'] : row[field]);
 const pct = (p) => Math.min(100, Math.round((p.raised_pence / Math.max(1, p.goal_pence)) * 100));
@@ -47,7 +47,7 @@ function projectCard(ctx, p) {
   <div class="pad stack">
     <div class="row between"><span class="chip">${dt(p.cause, lang)}</span>${p.urgent ? h`<span class="chip bad">${t('urgent')}</span>` : ''}</div>
     <h3><a class="plain" href="/projects/${p.id}">${L(p, 'title', lang)}</a></h3>
-    <div class="small muted">${lang === 'ta' && p.org_name_ta ? p.org_name_ta : p.org_name} · ${dt(p.district, lang)}, ${dt(p.org_country, lang)}</div>
+    <div class="small muted">${lang === 'ta' && p.org_name_ta ? p.org_name_ta : p.org_name} · ${placeLabel(p.district, lang)}</div>
     <div class="prog" role="progressbar" aria-valuenow="${pct(p)}" aria-valuemin="0" aria-valuemax="100" aria-label="${t('funded', { p: pct(p) })}"><i style="width:${pct(p)}%"></i></div>
     <div class="row between small num"><b>${t('ofGoal', { r: gbp(p.raised_pence), g: gbp(p.goal_pence) })}</b><span class="muted">${t('donors', { n: p.donors })}</span></div>
     <a class="btn give" href="/donate?kind=project&amp;id=${p.id}">${t('donate')}</a>
@@ -83,9 +83,18 @@ function csrfField(ctx) { return h`<input type="hidden" name="_csrf" value="${ct
 function options(list, selected, lang, blank) {
   return h`${blank !== undefined ? h`<option value="">${blank}</option>` : ''}${list.map((x) => h`<option value="${x}"${x === selected ? raw(' selected') : ''}>${dt(x, lang)}</option>`)}`;
 }
+/** Places grouped for a dropdown: Sri Lanka's districts, Tamil Nadu and Puducherry, other countries. */
+function areaOptions(selected, lang, blank) {
+  return h`${blank !== undefined ? h`<option value="">${blank}</option>` : ''}${AREA_GROUPS.map(([group, list]) => h`<optgroup label="${dt(group, lang)}">${list.map((x) => h`<option value="${x}"${x === selected ? raw(' selected') : ''}>${dt(x, lang)}</option>`)}</optgroup>`)}`;
+}
+/** "Jaffna, Sri Lanka", "Madurai, India", or just "Malaysia" when the place is a whole country. */
+function placeLabel(area, lang) {
+  const c = AREA_COUNTRY(area);
+  return c === area ? dt(area, lang) : `${dt(area, lang)}, ${dt(c, lang)}`;
+}
 function errors(ctx, list) {
   if (!list || !list.length) return '';
   return h`<div class="flash bad" role="alert"><b>${ctx.t('fixThese')}</b><ul>${list.map((e) => h`<li>${e}</li>`)}</ul></div>`;
 }
 
-module.exports = { memberAvatar, tierBadge, L, pct, avatar, verifiedTag, art, projectCard, csrfField, options, errors, absUrl, shareBar };
+module.exports = { areaOptions, placeLabel, memberAvatar, tierBadge, L, pct, avatar, verifiedTag, art, projectCard, csrfField, options, errors, absUrl, shareBar };

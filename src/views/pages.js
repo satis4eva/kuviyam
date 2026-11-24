@@ -1,7 +1,7 @@
 'use strict';
 const { h, raw, gbp, lkr, monthLabel, dateLabel, MON, RATE_LKR_PER_GBP } = require('../util');
 const { dt, CAUSES, TYPES, DISTRICTS, COUNTRIES } = require('../i18n');
-const { L, pct, avatar, verifiedTag, art, projectCard, csrfField, options, errors, shareBar, memberAvatar } = require('./parts');
+const { L, pct, avatar, verifiedTag, art, projectCard, csrfField, options, errors, shareBar, memberAvatar, areaOptions, placeLabel } = require('./parts');
 const C = require('./community');
 
 /* ---------------- home ---------------- */
@@ -112,7 +112,7 @@ function project(ctx, d) {
   return h`<div class="split">
     <div class="stack gap20">
       <div class="card"><div class="thumb wide">${art(p.id, p.cause)}</div></div>
-      <div class="stack"><div class="row"><span class="chip">${dt(p.cause, lang)}</span>${p.urgent ? h`<span class="chip bad">${t('urgent')}</span>` : ''}<span class="chip plain">${dt(p.district, lang)}, ${dt(o.country, lang)}</span>${p.status !== 'live' ? h`<span class="chip warn">${t('closed')}</span>` : ''}</div>
+      <div class="stack"><div class="row"><span class="chip">${dt(p.cause, lang)}</span>${p.urgent ? h`<span class="chip bad">${t('urgent')}</span>` : ''}<span class="chip plain">${placeLabel(p.district, lang)}</span>${p.status !== 'live' ? h`<span class="chip warn">${t('closed')}</span>` : ''}</div>
       <h1>${L(p, 'title', lang)}</h1>
       <a href="/partners/${o.slug}" class="row plain">${avatar(o)}<span><b>${L(o, 'name', lang)}</b><br>${verifiedTag(ctx, o)}</span></a></div>
       ${needs.length ? h`<div class="card pad stack"><h3>${t('buys')}</h3><ul>${needs.map((n) => h`<li>${n}</li>`)}</ul></div>` : ''}
@@ -314,7 +314,7 @@ function joinForm(ctx, d) {
     <div class="f2"><label class="f">${t('contactName')} *<input name="contact" value="${v.contact || ''}" required maxlength="120"></label><label class="f">${t('role')}<input name="contact_role" value="${v.contact_role || ''}" maxlength="80"></label></div>
     <div class="f2"><label class="f">${t('email')} *<input type="email" name="email" value="${v.email || ''}" required maxlength="200"></label><label class="f">${t('phone')}<input name="phone" value="${v.phone || ''}" maxlength="40"></label></div>
     <fieldset class="stack"><legend class="lbl">${t('causes')} *</legend><div class="ticks">${CAUSES.map((x) => h`<label><input type="checkbox" name="causes" value="${x}"${causes.includes(x) ? raw(' checked') : ''}> ${dt(x, lang)}</label>`)}</div></fieldset>
-    <label class="f">${t('areas')}<select name="area">${options(DISTRICTS, v.area || '', lang, '—')}</select></label>
+    <label class="f">${t('areas')}<select name="area">${areaOptions(v.area || '', lang, '—')}</select></label>
     <label class="f">${t('aboutEn')} *<textarea name="about" required maxlength="2000">${v.about || ''}</textarea></label>
     <label class="f">${t('aboutTa')}<textarea name="about_ta" lang="ta" maxlength="2000">${v.about_ta || ''}</textarea></label>
     <h3>${t('s3')}</h3><p class="tiny muted">${t('docNote')}</p>

@@ -3,7 +3,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const crypto = require('node:crypto');
 const { Raw, toPence, nowIso, requiredReportMonth, token, ref, slugify, isEmail, clean, lines, esc } = require('./util');
-const { makeT, dt, CAUSES, TYPES, CATEGORIES, DISTRICTS, COUNTRIES } = require('./i18n');
+const { makeT, dt, CAUSES, TYPES, CATEGORIES, AREAS, COUNTRIES } = require('./i18n');
 const dtTa = (s) => dt(s, 'ta'); // lets Tamil searches match English-stored places and causes
 const auth = require('./auth');
 const { parseMultipart, checkFile } = require('./multipart');
@@ -130,7 +130,7 @@ function createApp(db) {
   });
 
   route('GET', '/projects', (ctx) => {
-    const f = { q: clean(ctx.query.get('q'), 80), cause: CAUSES.includes(ctx.query.get('cause')) ? ctx.query.get('cause') : '', district: DISTRICTS.includes(ctx.query.get('district')) ? ctx.query.get('district') : '' };
+    const f = { q: clean(ctx.query.get('q'), 80), cause: CAUSES.includes(ctx.query.get('cause')) ? ctx.query.get('cause') : '', district: AREAS.includes(ctx.query.get('district')) ? ctx.query.get('district') : '' };
     let list = db.prepare(`${PROJECT_SQL} WHERE o.status = 'verified' AND p.status = 'live' ORDER BY p.urgent DESC, p.created_at DESC`).all();
     const districts = [...new Set(list.map((p) => p.district))].sort();
     if (f.cause) list = list.filter((p) => p.cause === f.cause);
@@ -360,7 +360,7 @@ function createApp(db) {
     const causes = (Array.isArray(b.causes) ? b.causes : b.causes ? [b.causes] : []).filter((c) => CAUSES.includes(c));
     const v = { type: TYPES.includes(b.type) ? b.type : '', name: clean(b.name, 160), name_ta: clean(b.name_ta, 160), country: COUNTRIES.includes(b.country) ? b.country : '', town: clean(b.town, 120),
       reg_no: clean(b.reg_no, 80), founded: Number(b.founded) || null, website: clean(b.website, 200), contact: clean(b.contact, 120), contact_role: clean(b.contact_role, 80), email: clean(b.email, 200),
-      phone: clean(b.phone, 40), area: DISTRICTS.includes(b.area) ? b.area : '', about: clean(b.about, 2000), about_ta: clean(b.about_ta, 2000), causes };
+      phone: clean(b.phone, 40), area: AREAS.includes(b.area) ? b.area : '', about: clean(b.about, 2000), about_ta: clean(b.about_ta, 2000), causes };
     if (db.prepare(`SELECT 1 FROM applications WHERE user_id = ? AND status = 'pending'`).get(ctx.user.id)) errs.push(ctx.t('errPendingApp'));
     if (!v.type) errs.push(ctx.t('pickType'));
     if (!v.name || !v.country || !v.town || !v.reg_no || !v.contact || !v.about) errs.push(ctx.t('required'));
@@ -396,7 +396,7 @@ function createApp(db) {
   route('GET', '/dashboard/projects/new', (ctx) => { const o = partnerOrg(ctx); if (!o) return; page(ctx, { title: ctx.t('tProject'), active: 'dashboard', body: M.newProject(ctx, { org: o, values: { district: o.place, cause: o.cause } }) }); });
   route('POST', '/dashboard/projects', (ctx) => {
     const o = partnerOrg(ctx); if (!o) return;
-    const b = ctx.body; const v = { title: clean(b.title, 160), title_ta: clean(b.title_ta, 160), cause: CAUSES.includes(b.cause) ? b.cause : '', district: DISTRICTS.includes(b.district) ? b.district : '',
+    const b = ctx.body; const v = { title: clean(b.title, 160), title_ta: clean(b.title_ta, 160), cause: CAUSES.includes(b.cause) ? b.cause : '', district: AREAS.includes(b.district) ? b.district : '',
       goal: toPence(b.goal), ends_on: /^\d{4}-\d{2}-\d{2}$/.test(b.ends_on || '') ? b.ends_on : null, needs: lines(b.needs).join('\n'), needs_ta: lines(b.needs_ta).join('\n'), urgent: b.urgent ? 1 : 0 };
     const errs = [];
     if (!v.title && !v.title_ta) errs.push(ctx.t('errTitle'));
@@ -444,7 +444,7 @@ function createApp(db) {
     const o = partnerOrg(ctx); if (!o) return; const r = ownReport(o, ctx.params.id);
     if (!['draft', 'returned'].includes(r.status)) throw new HttpError(409, 'locked');
     const b = ctx.body; const errs = [];
-    const v = { description: clean(b.description, 200), description_ta: clean(b.description_ta, 200), category: CATEGORIES.includes(b.category) ? b.category : '', district: DISTRICTS.includes(b.district) ? b.district : '', amount: Math.round(Number(b.amount_lkr)) };
+    const v = { description: clean(b.description, 200), description_ta: clean(b.description_ta, 200), category: CATEGORIES.includes(b.category) ? b.category : '', district: AREAS.includes(b.district) ? b.district : '', amount: Math.round(Number(b.amount_lkr)) };
     if (!v.description || !v.category || !v.district) errs.push(ctx.t('required'));
     if (!(v.amount > 0 && v.amount < 1e10)) errs.push(ctx.t('errAmountLkr'));
     const f = ctx.files.find((x) => x.field === 'receipt');
@@ -478,7 +478,7 @@ function createApp(db) {
   });
   route('POST', '/dashboard/students', (ctx) => {
     const o = partnerOrg(ctx); if (!o) return;
-    const b = ctx.body; const v = { name: clean(b.name, 40), name_ta: clean(b.name_ta, 40), grade: Math.round(Number(b.grade)), district: DISTRICTS.includes(b.district) ? b.district : '', dream: clean(b.dream, 120), dream_ta: clean(b.dream_ta, 120), monthly: toPence(b.monthly) };
+    const b = ctx.body; const v = { name: clean(b.name, 40), name_ta: clean(b.name_ta, 40), grade: Math.round(Number(b.grade)), district: AREAS.includes(b.district) ? b.district : '', dream: clean(b.dream, 120), dream_ta: clean(b.dream_ta, 120), monthly: toPence(b.monthly) };
     const errs = [];
     if (!v.name || !v.district || !(v.grade >= 1 && v.grade <= 13)) errs.push(ctx.t('required'));
     if (/\s/.test(v.name)) errs.push(ctx.t('errFirstName'));
