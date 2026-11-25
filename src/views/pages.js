@@ -69,7 +69,7 @@ function home(ctx, d) {
       band: b.noticePhoto ? h`<img src="/files/${b.noticePhoto.file_id}" alt="" loading="lazy">` : h`<span class="hb-emoji">🪷</span>`,
       live: b.notices ? t('hbNotices', { n: b.notices }) : b.latestNotice ? t('hbLatestNotice', { n: L(b.latestNotice, 'name', lang) }) : t('hbNoticesNone') }),
     homeBox(ctx, { href: '/partners', key: 'partners', icon: '🏫', ...BI('Partners', 'பங்காளர்கள்'),
-      band: h`<span class="hb-mosaic">${b.orgs.map((o) => avatar(o, true))}</span>`, live: t('hbPartners', { n: d.partners }) }),
+      band: h`<span class="hb-mosaic">${b.orgs.map((o) => avatar(o, true))}</span>`, live: t('hbPartnersLive') }),
     homeBox(ctx, { href: '/transparency', key: 'spend', icon: '🧾', ...BI('Where money goes', 'பணம் எங்கே செல்கிறது'),
       band: b.spent ? h`<span class="hb-big num">${lkr(b.spent.lkr.s, lang)}</span>` : h`<span class="hb-emoji">🧾</span>`,
       live: b.spent ? t('hbSpent', { a: lkr(b.spent.lkr.s, lang), m: monthLabel(b.spent.month, lang), n: b.spent.lkr.docs }) : t('hbSpendNone') })
@@ -87,7 +87,7 @@ function home(ctx, d) {
     </div>
   </section>
   <section class="hgrid" aria-label="${t('homeBoxes')}">${feedBox(ctx, d)}${evBox}${boxes}</section>
-  <section class="w-stats card pad"><span><b class="num">${gbp(d.raised)}</b> ${t('stRaised')}</span><span><b class="num">${d.sponsored}</b> ${t('stStudents')}</span><span><b class="num">${d.partners}</b> ${t('stPartners')}</span><span><b class="num">${d.projects}</b> ${t('stProjects')}</span></section>
+  <section class="w-stats card pad"><span><b class="num">${gbp(d.raised)}</b> ${t('stRaised')}</span><span><b class="num">${d.sponsored}</b> ${t('stStudents')}</span><span><b class="num">${d.projects}</b> ${t('stProjects')}</span></section>
   <section><div class="sec-h"><h2>${t('urgentNeeds')}</h2><a href="/projects">${t('allProjects')}</a></div>
     <div class="grid g3">${d.urgent.map((p) => projectCard(ctx, p))}</div></section>
   ${d.events.length ? h`<section><div class="sec-h"><h2>${t('upcomingEvents')}</h2><a href="/events">${t('allEvents')}</a></div><div class="grid g3">${d.events.map((e) => C.eventCard(ctx, e, false))}</div></section>` : ''}`;

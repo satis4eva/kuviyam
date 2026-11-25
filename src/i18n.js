@@ -410,7 +410,7 @@ const T = {
   hbNotices: ['{n} new notices this week', 'இந்த வாரம் {n} புதிய அறிவித்தல்கள்'],
   hbLatestNotice: ['Latest: {n}', 'அண்மையில்: {n}'],
   hbNoticesNone: ['Obituaries and remembrance', 'மரண அறிவித்தல்களும் நினைவஞ்சலிகளும்'],
-  hbPartners: ['{n} Tamil charities and groups', '{n} தமிழ் அமைப்புகள்'],
+  hbPartners: ['{n} Tamil charities and groups', '{n} தமிழ் அமைப்புகள்'], hbPartnersLive: ['Find a charity or group to support', 'ஆதரிக்க ஒரு அமைப்பைக் கண்டறியுங்கள்'],
   hbSpent: ['{a} spent in {m} · {n} receipts', '{m} இல் {a} செலவு · {n} பற்றுச்சீட்டுகள்'],
   hbSpendNone: ['Monthly spending with receipts', 'பற்றுச்சீட்டுகளுடன் மாதாந்தச் செலவு'],
   hiName: ['Hi {n}', 'வணக்கம் {n}'],
