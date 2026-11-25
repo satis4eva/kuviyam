@@ -14,7 +14,7 @@ const { registerCommunity } = require('./community');
 const { registerSocial, can } = require('./social');
 const { registerTheme } = require('./theme');
 const { registerSocials } = require('./socials');
-const { OLD_HOST, NEW_HOST } = require('./util');
+const { OLD_HOST } = require('./util');
 const { registerEmails } = require('./emails');
 const { registerTickets } = require('./tickets');
 const { createOutbox } = require('./outbox');
@@ -647,11 +647,11 @@ function createApp(db) {
   handle.outbox = H.outbox;
   return handle;
   async function handle(req, res) {
-    // The old address redirects to the new one, keeping the page path.
+    // The old kuviyam address is retired: no site, no redirect.
     const host = String(req.headers['x-forwarded-host'] || req.headers.host || '').split(',')[0].trim().toLowerCase().replace(/:\d+$/, '');
-    if (host === OLD_HOST || host === 'www.' + OLD_HOST) {
-      res.writeHead(301, { Location: `https://${NEW_HOST}${req.url}`, 'Cache-Control': 'public, max-age=86400' });
-      return res.end();
+    if (host === OLD_HOST || host.endsWith('.' + OLD_HOST)) {
+      res.writeHead(410, { 'Content-Type': 'text/plain; charset=utf-8', 'Cache-Control': 'no-store', 'X-Robots-Tag': 'noindex' });
+      return res.end('This address is no longer in use.');
     }
     const url = new URL(req.url, 'http://local');
     const cookies = auth.parseCookies(req.headers.cookie);
