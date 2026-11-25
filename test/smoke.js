@@ -519,6 +519,11 @@ async function step(name, fn) { await fn(); passed++; console.log('  ✓', name)
       const home = (await anon.get('/')).text;
       assert.match(home, /class="socials"/); assert.match(home, /https:\/\/facebook\.com\/kuviyam/); assert.match(home, /instagram\.com\/kuviyam/); assert.doesNotMatch(home, /javascript:alert/);
     });
+    await step('old kuviyam address redirects to the new one', async () => {
+      const r = await new Promise((ok, no) => require('http').get({ host: '127.0.0.1', port: PORT, path: '/partners?x=1', headers: { host: 'kuviyam.dbsgroup.io' } }, (res) => { res.resume(); ok(res); }).on('error', no));
+      assert.equal(r.statusCode, 301); assert.equal(r.headers.location, 'https://charityhub.dbsgroup.io/partners?x=1');
+      assert.equal((await anon.get('/')).status, 200);
+    });
     await step('obituaries page links to other Tamil notice sites', async () => {
       const m = (await anon.get('/memorials')).text; assert.match(m, /More notices from the Tamil community/); assert.match(m, /https:\/\/ripbook\.com\//); assert.match(m, /rip\.page/);
     });

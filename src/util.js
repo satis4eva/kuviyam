@@ -46,4 +46,7 @@ const isEmail = (s) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(s || ''));
 const clean = (s, max = 500) => String(s ?? '').trim().slice(0, max);
 const lines = (s) => String(s || '').split(/\r?\n/).map((x) => x.trim()).filter(Boolean).slice(0, 20);
 
-module.exports = { Raw, raw, esc, h, gbp, lkr, toPence, MON, monthLabel, dateLabel, nowIso, ym, requiredReportMonth, token, ref, slugify, isEmail, clean, lines, RATE_LKR_PER_GBP };
+/* The site moved from kuviyam.dbsgroup.io; old links (and an old PUBLIC_URL) point to the new address. */
+const OLD_HOST = 'kuviyam.dbsgroup.io'; const NEW_HOST = 'charityhub.dbsgroup.io';
+const publicUrl = () => (process.env.PUBLIC_URL || '').replace(OLD_HOST, NEW_HOST).replace(/\/$/, '');
+module.exports = { OLD_HOST, NEW_HOST, publicUrl, Raw, raw, esc, h, gbp, lkr, toPence, MON, monthLabel, dateLabel, nowIso, ym, requiredReportMonth, token, ref, slugify, isEmail, clean, lines, RATE_LKR_PER_GBP };

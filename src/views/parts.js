@@ -57,7 +57,7 @@ function projectCard(ctx, p) {
 
 /** Absolute link for sharing: PUBLIC_URL if set, else the host the visitor used. */
 function absUrl(ctx, path) {
-  const base = process.env.PUBLIC_URL || `${ctx.req.headers['x-forwarded-proto'] === 'https' ? 'https' : 'http'}://${ctx.req.headers['x-forwarded-host'] || ctx.req.headers.host}`;
+  const base = require('../util').publicUrl() || `${ctx.req.headers['x-forwarded-proto'] === 'https' ? 'https' : 'http'}://${ctx.req.headers['x-forwarded-host'] || ctx.req.headers.host}`;
   return base.replace(/\/$/, '') + path;
 }
 /*

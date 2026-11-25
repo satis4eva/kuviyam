@@ -14,6 +14,7 @@ const { registerCommunity } = require('./community');
 const { registerSocial, can } = require('./social');
 const { registerTheme } = require('./theme');
 const { registerSocials } = require('./socials');
+const { OLD_HOST, NEW_HOST } = require('./util');
 const { registerEmails } = require('./emails');
 const { registerTickets } = require('./tickets');
 const { createOutbox } = require('./outbox');
@@ -646,6 +647,12 @@ function createApp(db) {
   handle.outbox = H.outbox;
   return handle;
   async function handle(req, res) {
+    // The old address redirects to the new one, keeping the page path.
+    const host = String(req.headers['x-forwarded-host'] || req.headers.host || '').split(',')[0].trim().toLowerCase().replace(/:\d+$/, '');
+    if (host === OLD_HOST || host === 'www.' + OLD_HOST) {
+      res.writeHead(301, { Location: `https://${NEW_HOST}${req.url}`, 'Cache-Control': 'public, max-age=86400' });
+      return res.end();
+    }
     const url = new URL(req.url, 'http://local');
     const cookies = auth.parseCookies(req.headers.cookie);
     const lang = cookies.lang === 'ta' || cookies.lang === 'en' ? cookies.lang : (/^ta\b/i.test(req.headers['accept-language'] || '') ? 'ta' : 'en');

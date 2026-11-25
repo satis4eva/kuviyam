@@ -11,7 +11,7 @@ const { nowIso } = require('./util');
 
 const MAX_ATTEMPTS = 5;
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
-const base = () => (process.env.PUBLIC_URL || `http://localhost:${process.env.PORT || 3000}`).replace(/\/$/, '');
+const base = () => (require('./util').publicUrl() || `http://localhost:${process.env.PORT || 3000}`).replace(/\/$/, '');
 const fmtDate = (d) => new Date(d + 'T12:00:00Z').toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' });
 const tEn = (k, v) => ({ zoneTime: `(${v && v.z} time)` }[k] || k);
 
