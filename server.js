@@ -46,7 +46,7 @@ app.outbox.start(); // sends queued emails: confirmations, reminders, partner su
 const server = http.createServer(app);
 server.requestTimeout = 60_000;
 const port = Number(process.env.PORT) || 3000;
-server.listen(port, () => console.log(`Kuviyam running on port ${port}`));
+server.listen(port, () => console.log(`CharityHub running on port ${port}`));
 
 const stop = () => server.close(() => { db.close(); process.exit(0); });
 process.on('SIGTERM', stop);

@@ -4,7 +4,7 @@
  * Payment providers. Only the test provider is active: it confirms a payment without moving money,
  * so the whole donation flow can be reviewed safely.
  *
- * DPayments goes here once its API details and Kuviyam's merchant account are agreed (plan, Phase 0).
+ * DPayments goes here once its API details and CharityHub's merchant account are agreed (plan, Phase 0).
  * The shape every provider follows:
  *   start(donation)  -> { redirect }   send the donor to the provider's checkout
  *   confirm(donation, req) -> { ok, providerRef }   verify the result (webhook or return URL)
@@ -24,7 +24,7 @@ const providers = {
 
 /*
  * Two separate gateways:
- *   'donations' (PAYMENT_PROVIDER)        Kuviyam's own account: every donation goes to Kuviyam.
+ *   'donations' (PAYMENT_PROVIDER)        CharityHub's own account: every donation goes to CharityHub.
  *   'tickets'   (TICKET_PAYMENT_PROVIDER) the platform's account: event ticket money, from which the platform
  *                                         keeps its commission and pays the rest to the event organiser.
  */

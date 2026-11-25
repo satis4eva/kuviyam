@@ -187,7 +187,7 @@ function createApp(db) {
   });
 
   route('GET', '/transparency', (ctx) => {
-    // Partners added from the directory appear here only once an admin ticks "Checked by Kuviyam".
+    // Partners added from the directory appear here only once an admin ticks "Checked by CharityHub".
     const orgs = db.prepare(`SELECT * FROM orgs WHERE status = 'verified' AND checked != 0 ORDER BY name`).all();
     const req = requiredReportMonth();
     const rows = orgs.map((o) => {
@@ -258,7 +258,7 @@ function createApp(db) {
     if (!isEmail(b.donor_email)) errs.push(ctx.t('errEmail'));
     if (errs.length) return page(ctx, { body: P.donateForm(ctx, { kind, id, values: { ...b, monthly: b.monthly === '1', amount: b.amount }, targetName: tg.name(ctx.lang, ctx.t), fixed: tg.fixed, errors: errs }) }, 400);
     const pv = provider();
-    const donation = { ref: ref('KV'), kind, target_id: id, org_id: tg.orgId, amount_pence: amount, tip_pence: b.tip ? Math.round(amount * 0.05) : 0, gift_aid: b.gift_aid ? 1 : 0, monthly: kind === 'student' || b.monthly === '1' ? 1 : 0 };
+    const donation = { ref: ref('CH'), kind, target_id: id, org_id: tg.orgId, amount_pence: amount, tip_pence: b.tip ? Math.round(amount * 0.05) : 0, gift_aid: 0 /* Gift Aid needs a registered charity: not offered */, monthly: kind === 'student' || b.monthly === '1' ? 1 : 0 };
     db.prepare(`INSERT INTO donations (ref, kind, target_id, org_id, amount_pence, tip_pence, gift_aid, monthly, donor_name, donor_email, anonymous, status, provider, user_id, created_at)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', ?, ?, ?)`).run(donation.ref, kind, id, tg.orgId, donation.amount_pence, donation.tip_pence, donation.gift_aid, donation.monthly,
       clean(b.donor_name, 120), clean(b.donor_email, 200), b.anonymous ? 1 : 0, pv.name, ctx.user ? ctx.user.id : null, nowIso());

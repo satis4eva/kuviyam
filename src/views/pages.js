@@ -126,7 +126,6 @@ function project(ctx, d) {
       <div class="prog"><i style="width:${pct(p)}%"></i></div>
       <div class="row between small muted num"><span>${t('funded', { p: pct(p) })}</span><span>${t('donors', { n: p.donors })}</span>${p.ends_on ? h`<span>${t('ends', { d: dateLabel(p.ends_on, lang) })}</span>` : ''}</div>
       ${p.status === 'live' ? h`<a class="btn give" href="/donate?kind=project&amp;id=${p.id}">${t('donateNow')}</a><a class="btn" href="/donate?kind=project&amp;id=${p.id}&amp;monthly=1">${t('giveMonthly')}</a>` : ''}
-      <p class="tiny muted">${t('giftAidNote')}</p>
       ${shareBar(ctx, `/projects/${p.id}`, L(p, 'title', lang))}
     </aside></div>`;
 }
@@ -239,7 +238,6 @@ function donateForm(ctx, d) {
     <fieldset class="amounts"><legend class="sr">${t('amount')}</legend>${presets.map((a) => h`<label><input type="radio" name="preset" value="${a}"${Number(v.amount) === a ? raw(' checked') : ''}> £${a}</label>`)}</fieldset>
     <label class="f">${t('otherAmt')}<input name="amount" inputmode="decimal" value="${v.amount}" required></label>
     <div class="f2"><label class="f">${t('name')}<input name="donor_name" value="${v.donor_name}" required maxlength="120" autocomplete="name"></label><label class="f">${t('emailReceipt')}<input type="email" name="donor_email" value="${v.donor_email}" required maxlength="200" autocomplete="email"></label></div>
-    <label class="check"><input type="checkbox" name="gift_aid" value="1"${v.gift_aid ? raw(' checked') : ''}> ${t('giftAidShort')}</label>
     <label class="check"><input type="checkbox" name="tip" value="1"${v.tip ? raw(' checked') : ''}> ${t('tipShort')}</label>
     <label class="check"><input type="checkbox" name="anonymous" value="1"${v.anonymous ? raw(' checked') : ''}> ${t('anon')}</label>
     <button class="btn give">${t('continue')}</button>

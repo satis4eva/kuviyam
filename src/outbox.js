@@ -21,12 +21,12 @@ function layout({ heading, headingTa, lines, button, after = [], footer }) {
   const html = `<!doctype html><html><body style="margin:0;background:#F8FAF9;font-family:Arial,Helvetica,sans-serif;color:#13232B">
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#F8FAF9;padding:24px 12px"><tr><td align="center">
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;background:#ffffff;border:1px solid #DFE6E3;border-radius:14px">
-<tr><td style="padding:22px 26px 6px"><div style="font-weight:bold;color:#0D6B5B;font-size:18px">Kuviyam · குவியம்</div></td></tr>
+<tr><td style="padding:22px 26px 6px"><div style="font-weight:bold;color:#0D6B5B;font-size:18px">CharityHub · அறமையம்</div></td></tr>
 <tr><td style="padding:6px 26px 0"><h1 style="font-size:22px;margin:8px 0 2px">${esc(heading)}</h1>${headingTa ? `<div style="color:#5A6B72;font-size:15px">${esc(headingTa)}</div>` : ''}</td></tr>
 <tr><td style="padding:12px 26px;font-size:16px;line-height:1.55">${lines.map((l) => `<p style="margin:0 0 10px">${l}</p>`).join('')}
 ${button ? `<p style="margin:18px 0"><a href="${esc(button.url)}" style="background:${button.color || '#0D6B5B'};color:#ffffff;text-decoration:none;padding:13px 22px;border-radius:10px;font-weight:bold;display:inline-block;font-size:16px">${esc(button.label)}</a></p>` : ''}
 ${after.map((l) => `<p style="margin:0 0 10px">${l}</p>`).join('')}</td></tr>
-<tr><td style="padding:14px 26px 22px;border-top:1px solid #DFE6E3;color:#5A6B72;font-size:13px">${esc(footer)}<br><a href="${base()}" style="color:#0D6B5B">${base().replace(/^https?:\/\//, '')}</a> · Registered charity 1215402</td></tr>
+<tr><td style="padding:14px 26px 22px;border-top:1px solid #DFE6E3;color:#5A6B72;font-size:13px">${esc(footer)}<br><a href="${base()}" style="color:#0D6B5B">${base().replace(/^https?:\/\//, '')}</a></td></tr>
 </table></td></tr></table></body></html>`;
   return { text, html };
 }
@@ -56,19 +56,19 @@ function createOutbox(db) {
   function render(row) {
     const p = row.payload ? JSON.parse(row.payload) : {};
     if (row.kind === 'test') {
-      return { subject: 'Kuviyam test email', ...layout({ heading: 'Email is working', headingTa: 'மின்னஞ்சல் செயல்படுகிறது', lines: ['This test was sent from Admin → Emails.'], footer: 'Sent to an admin of Kuviyam.' }) };
+      return { subject: 'CharityHub test email', ...layout({ heading: 'Email is working', headingTa: 'மின்னஞ்சல் செயல்படுகிறது', lines: ['This test was sent from Admin → Emails.'], footer: 'Sent to an admin of CharityHub.' }) };
     }
     if (row.kind === 'directory_invite') {
-      return { subject: `An invitation to join Kuviyam`, ...layout({ heading: `${p.name}: join Kuviyam as a partner`, headingTa: 'குவியத்தில் பங்காளராக இணைய அழைப்பு',
-        lines: ['Kuviyam is a platform for Tamil charities and community groups worldwide to raise money for projects in Sri Lanka, share news and events, and show every rupee spent with receipts.',
+      return { subject: `An invitation to join CharityHub`, ...layout({ heading: `${p.name}: join CharityHub as a partner`, headingTa: 'அறமையத்தில் பங்காளராக இணைய அழைப்பு',
+        lines: ['CharityHub is a platform for Tamil charities and community groups worldwide to raise money for projects in Sri Lanka, share news and events, and show every rupee spent with receipts.',
           'We found your organisation in public listings and would love to have you. Joining is free: apply online, and once we have checked your details you can list projects, sponsor students, post events and updates.'],
         button: { label: 'Apply to join', url: `${base()}/join` }, after: ['If this is not the right address, or you would rather not hear from us, just reply and tell us.'],
-        footer: `Sent by ${p.by || 'the Kuviyam team'} on behalf of Kuviyam.` }) };
+        footer: `Sent by ${p.by || 'the CharityHub team'} on behalf of CharityHub.` }) };
     }
     if (row.kind === 'partner_digest') {
       const lines = p.events.map((e) => `<b>${esc(e.title)}</b> (${esc(fmtDate(e.starts_on))}): ${e.added} new, ${e.going} going in total.<br><span style="color:#5A6B72">${esc(e.names.join(', '))}${e.more ? ` and ${e.more} more` : ''}</span>`);
       return { subject: `New RSVPs for ${p.orgName}`, ...layout({ heading: 'New people going to your events', headingTa: 'உங்கள் நிகழ்வுகளுக்கு புதிதாக வருபவர்கள்', lines,
-        button: { label: 'See who is going', url: `${base()}/dashboard/events` }, footer: `You get this daily summary because you manage ${p.orgName} on Kuviyam.` }) };
+        button: { label: 'See who is going', url: `${base()}/dashboard/events` }, footer: `You get this daily summary because you manage ${p.orgName} on CharityHub.` }) };
     }
     const e = eventById(row.event_id);
     if (!e || e.status !== 'live' || e.org_status !== 'verified') return null;
@@ -83,13 +83,13 @@ function createOutbox(db) {
     if (row.kind === 'rsvp_confirm') {
       return { subject: `You're going: ${e.title}`, ...layout({ heading: `You're going to ${e.title}`, headingTa: 'நீங்கள் வருகிறீர்கள்', lines: details,
         button: join, after: [calendar, e.join_url ? 'Keep this email: the button above is your joining link. We will also remind you before it starts.' : 'We will remind you the day before.'],
-        footer: 'You get this because you pressed "I\'m going" on Kuviyam. Changed your mind? Open the event page and press the button again.' }) };
+        footer: 'You get this because you pressed "I\'m going" on CharityHub. Changed your mind? Open the event page and press the button again.' }) };
     }
     if (row.kind === 'reminder_day' || row.kind === 'reminder_hour') {
       const soon = row.kind === 'reminder_hour';
       return { subject: `${soon ? 'Starting in 1 hour' : 'Tomorrow'}: ${e.title}`, ...layout({ heading: soon ? `${e.title} starts in 1 hour` : `${e.title} is tomorrow`,
         headingTa: soon ? 'ஒரு மணி நேரத்தில் தொடங்குகிறது' : 'நாளை நடைபெறுகிறது', lines: details, button: join, after: [calendar],
-        footer: 'You get this because you are going to this event on Kuviyam.' }) };
+        footer: 'You get this because you are going to this event on CharityHub.' }) };
     }
     if (row.kind === 'ticket_confirm') {
       const o = db.prepare('SELECT * FROM ticket_orders WHERE ref = ?').get(p.ref);
@@ -98,12 +98,12 @@ function createOutbox(db) {
       return { subject: `Your tickets: ${e.title}`, ...layout({ heading: `Your ${o.qty === 1 ? 'ticket' : o.qty + ' tickets'} for ${e.title}`, headingTa: 'உங்கள் நுழைவுச்சீட்டுகள்',
         lines: [`<b>Ticket number:</b> ${esc(o.ref)}`, `<b>Tickets:</b> ${o.qty} × ${money(o.unit_pence)} = <b>${money(o.gross_pence)}</b>`, ...details],
         button: e.join_url ? join : { label: 'View your tickets', url: `${base()}/tickets/${o.ref}` }, after: [calendar, 'Show this email or your ticket number at the door. We will remind you before it starts.'],
-        footer: `Paid to the Kuviyam events platform on behalf of ${e.org_name}. Questions about the event or refunds: contact the organiser.` }) };
+        footer: `Paid to the CharityHub events platform on behalf of ${e.org_name}. Questions about the event or refunds: contact the organiser.` }) };
     }
     if (row.kind === 'event_msg') {
       if (!going(e.id, row.user_id)) return null;
       return { subject: `Message about ${e.title}`, ...layout({ heading: `${e.org_name}: ${e.title}`, headingTa: 'நிகழ்வு பற்றிய செய்தி', lines: [esc(p.text).replace(/\n/g, '<br>'), ...details],
-        button: join, footer: 'You get this because you are going to this event on Kuviyam.' }) };
+        button: join, footer: 'You get this because you are going to this event on CharityHub.' }) };
     }
     return null;
   }

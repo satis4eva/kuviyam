@@ -14,7 +14,7 @@ const DEFAULTS = { bg: '#F8FAF9', brand: '#0D6B5B', accent: '#E39A12' };
 // Light look for everyone unless an admin lets the site follow each device's dark mode.
 const DEFAULT_LIGHT = true;
 const PRESETS = [
-  { key: 'kuviyam', en: 'Kuviyam teal', ta: 'குவியம் பச்சை', bg: '#F8FAF9', brand: '#0D6B5B', accent: '#E39A12' },
+  { key: 'kuviyam', en: 'CharityHub teal', ta: 'அறமையம் பச்சை', bg: '#F8FAF9', brand: '#0D6B5B', accent: '#E39A12' },
   { key: 'white', en: 'Clean white', ta: 'வெண்மை', bg: '#FFFFFF', brand: '#0D6B5B', accent: '#E39A12' },
   { key: 'ocean', en: 'Ocean blue', ta: 'கடல் நீலம்', bg: '#F7FAFD', brand: '#1F5FA0', accent: '#F2A33A' },
   { key: 'temple', en: 'Temple maroon', ta: 'கோயில் செம்மண்', bg: '#FCF9F6', brand: '#8C2633', accent: '#E0A21B' },

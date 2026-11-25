@@ -1,6 +1,6 @@
-# Kuviyam platform (Phase 1)
+# CharityHub platform (Phase 1)
 
-Tamil and English giving platform for Kuviyam (kuviyam.org): verified charities, NGOs, diaspora and community groups post projects and needs, take donations and student sponsorships, and publish monthly spending reports with receipts.
+Tamil and English giving platform for DBS Group (charityhub.dbsgroup.io): verified charities, NGOs, diaspora and community groups post projects and needs, take donations and student sponsorships, and publish monthly spending reports with receipts.
 
 ## What's in Phase 1
 

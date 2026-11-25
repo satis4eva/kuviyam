@@ -111,10 +111,10 @@ function registerCommunity(route, H) {
     const d = e.starts_on.replace(/-/g, ''); const next = new Date(e.starts_on + 'T00:00:00Z'); next.setUTCDate(next.getUTCDate() + 1);
     const w = ET.window(e); const stamp = (x) => x.toISOString().replace(/[-:]/g, '').slice(0, 15) + 'Z';
     const esc = (v) => String(v || '').replace(/\\/g, '\\\\').replace(/[,;]/g, (c) => '\\' + c).replace(/\r?\n/g, '\\n');
-    const ics = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//Kuviyam//Events//EN', 'BEGIN:VEVENT', `UID:event-${e.id}@kuviyam`, `DTSTAMP:${new Date().toISOString().replace(/[-:]/g, '').slice(0, 15)}Z`,
+    const ics = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//CharityHub//Events//EN', 'BEGIN:VEVENT', `UID:event-${e.id}@charityhub`, `DTSTAMP:${new Date().toISOString().replace(/[-:]/g, '').slice(0, 15)}Z`,
       ...(w.hasTime ? [`DTSTART:${stamp(w.start)}`, `DTEND:${stamp(w.end)}`] : [`DTSTART;VALUE=DATE:${d}`, `DTEND;VALUE=DATE:${next.toISOString().slice(0, 10).replace(/-/g, '')}`]),
       ...(canSeeLink(ctx, e) && e.join_url ? [`URL:${e.join_url}`] : []), `SUMMARY:${esc(e.title)}`, `LOCATION:${esc(e.place)}`, `DESCRIPTION:${esc((e.details || '') + ' (' + e.org_name + ')')}`, 'END:VEVENT', 'END:VCALENDAR'].join('\r\n');
-    ctx.res.writeHead(200, { 'Content-Type': 'text/calendar; charset=utf-8', 'Content-Disposition': `attachment; filename="kuviyam-event-${e.id}.ics"`, 'Cache-Control': 'no-store' });
+    ctx.res.writeHead(200, { 'Content-Type': 'text/calendar; charset=utf-8', 'Content-Disposition': `attachment; filename="charityhub-event-${e.id}.ics"`, 'Cache-Control': 'no-store' });
     ctx.res.end(ics);
   });
   route('POST', '/events/:id/rsvp', (ctx) => {
@@ -269,10 +269,10 @@ function registerCommunity(route, H) {
     const e = orgEvent(o, ctx.params.id);
     const cell = (v) => { let x = String(v ?? ''); if (/^[=+\-@]/.test(x)) x = "'" + x; return `"${x.replace(/"/g, '""')}"`; };
     const rows = [['Name', 'Email', 'Home town', 'RSVP date', 'Tickets'], ...attendees(e.id).map((p) => [p.name, p.email, p.home_town || '', (p.created_at || '').slice(0, 16).replace('T', ' '), p.tickets || ''])];
-    ctx.res.writeHead(200, { 'Content-Type': 'text/csv; charset=utf-8', 'Content-Disposition': `attachment; filename="kuviyam-event-${e.id}-going.csv"`, 'Cache-Control': 'no-store' });
+    ctx.res.writeHead(200, { 'Content-Type': 'text/csv; charset=utf-8', 'Content-Disposition': `attachment; filename="charityhub-event-${e.id}-going.csv"`, 'Cache-Control': 'no-store' });
     ctx.res.end('\ufeff' + rows.map((r) => r.map(cell).join(',')).join('\r\n'));
   });
-  // Message everyone going: arrives in their Kuviyam messages and by email.
+  // Message everyone going: arrives in their CharityHub messages and by email.
   route('POST', '/dashboard/events/:id/message', (ctx) => {
     const o = partnerOrg(ctx); if (!o) return;
     const e = orgEvent(o, ctx.params.id);
@@ -309,7 +309,7 @@ function registerCommunity(route, H) {
     const b = ctx.body; const errs = [];
     const v = { title: clean(b.title, 160), title_ta: clean(b.title_ta, 160), starts_on: String(b.starts_on || ''), place: clean(b.place, 160), place_ta: clean(b.place_ta, 160), mode: MODES.includes(b.mode) ? b.mode : '', price: clean(b.price, 30), details: clean(b.details, 1500), details_ta: clean(b.details_ta, 1500), ...readTimeAndLink(b) };
     if (v.badLink) errs.push(ctx.t('errJoinUrl'));
-    // A ticketed event with a price is sold through Kuviyam (platform gateway); otherwise the price is just shown.
+    // A ticketed event with a price is sold through CharityHub (platform gateway); otherwise the price is just shown.
     v.price_pence = v.mode === 'tickets' ? toPence(b.price) : null; if (!(v.price_pence > 0)) v.price_pence = null;
     if (v.price_pence && v.price_pence > 100000) errs.push(ctx.t('errAmount'));
     v.capacity = v.price_pence && Number(b.capacity) > 0 ? Math.min(100000, Math.floor(Number(b.capacity))) : null;

@@ -162,7 +162,7 @@ function memorials(ctx, d) {
       <div class="grid g2">${RIP_SITES.map((x) => h`<a class="card pad plain rip-site" href="${x.url}" target="_blank" rel="noopener nofollow"><b>${x.name} ↗</b><span class="small muted">${t(x.key)}</span></a>`)}</div>
       <p class="small">${t('ripFreeHere')} <a href="/memorials/new">${t('postNotice')} →</a></p></section>`;
 }
-/* Other Tamil notice sites. Kuviyam links to them and copies nothing from them. */
+/* Other Tamil notice sites. CharityHub links to them and copies nothing from them. */
 const RIP_SITES = [
   { name: 'RIPBook', url: 'https://ripbook.com/', key: 'ripSiteRipbook' },
   { name: 'RIP Page', url: 'https://rip.page/en', key: 'ripSiteRippage' }

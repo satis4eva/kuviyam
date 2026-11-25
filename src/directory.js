@@ -1,7 +1,7 @@
 'use strict';
 /*
  * Directory: Tamil organisations and community events gathered from public sources.
- * These are NOT Kuviyam partners: they have not applied, are not checked, and no money is collected for them.
+ * These are NOT CharityHub partners: they have not applied, are not checked, and no money is collected for them.
  *   Admin > Directory   private outreach list with every contact detail, a status (new, contacted,
  *                       invited, joined, declined), notes, and an Invite email.
  *   /directory          public list, clearly labelled, showing every public detail from the
@@ -190,7 +190,7 @@ function registerDirectory(route, H) {
     const slug = db.prepare('SELECT slug FROM orgs WHERE id = ?').get(id).slug;
     redirect(ctx, `/partners/${slug}`, { kind: 'good', msg: ctx.t('dirMadePartners', { n: 1 }) });
   });
-  // Invitation email: "join Kuviyam as a partner". Marks the organisation as invited.
+  // Invitation email: "join CharityHub as a partner". Marks the organisation as invited.
   route('POST', '/admin/directory/:id/invite', (ctx) => {
     if (!requireAdmin(ctx)) return;
     const o = dirOrg(ctx.params.id);

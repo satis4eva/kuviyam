@@ -74,7 +74,7 @@ function registerSocial(route, H) {
     if (ctx.user.tier === 'gold' && tier === 'silver') return redirect(ctx, '/membership', { kind: 'warn', msg: ctx.t('mbDowngrade') });
     const amount = prices()[`${tier}_${period}`];
     if (!(amount >= 100)) throw new HttpError(400);
-    const pv = provider(); const r = ref('KM');
+    const pv = provider(); const r = ref('CM');
     db.prepare(`INSERT INTO memberships (ref, user_id, tier, period, amount_pence, status, provider, created_at) VALUES (?, ?, ?, ?, ?, 'pending', ?, ?)`).run(r, ctx.user.id, tier, period, amount, pv.name, nowIso());
     const start = pv.start({ ref: r, amount_pence: amount, kind: 'membership' });
     redirect(ctx, start.redirect.replace(/^\/pay\//, '/membership/pay/'));

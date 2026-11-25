@@ -20,7 +20,7 @@ function publicList(ctx, d) {
       <button class="btn">${t('search')}</button></form>
     <p class="small muted">${t('dirCount', { n: d.list.length })}</p>
     <div class="grid g3">${d.list.length ? d.list.map((o) => h`<article class="card pad stack6 dir-card">
-        <b>${o.name}</b>${o.slug ? h` <a class="chip good" href="/partners/${o.slug}">${t('dirPartnerPage')} →</a>` : o.status === 'joined' ? h` <span class="chip good">${t('dirOnKuviyam')}</span>` : ''}
+        <b>${o.name}</b>${o.slug ? h` <a class="chip good" href="/partners/${o.slug}">${t('dirPartnerPage')} →</a>` : o.status === 'joined' ? h` <span class="chip good">${t('dirOnCharityHub')}</span>` : ''}
         <span class="small muted">${o.type || ''}</span>
         <span class="small">📍 ${where(o, lang)}</span>
         ${o.address ? h`<span class="small muted">${o.address}</span>` : ''}
@@ -78,7 +78,7 @@ function admin(ctx, d) {
   </section>`;
 }
 
-/* "Happening in the community" on the Events page: public listings, not Kuviyam events. */
+/* "Happening in the community" on the Events page: public listings, not CharityHub events. */
 function communityEvents(ctx, list) {
   const { t, lang } = ctx;
   if (!list.length) return '';

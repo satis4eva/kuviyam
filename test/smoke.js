@@ -72,7 +72,7 @@ async function step(name, fn) { await fn(); passed++; console.log('  ✓', name)
     const anon = new Client();
     await step('public pages render in English', async () => {
       for (const u of ['/', '/projects', '/projects/1', '/partners', '/partners/vanni-learning-trust', '/sponsor', '/transparency', '/transparency/vanni-learning-trust', '/join', '/login', '/register']) {
-        const r = await anon.get(u); assert.equal(r.status, 200, u); assert.match(r.text, /Kuviyam/);
+        const r = await anon.get(u); assert.equal(r.status, 200, u); assert.match(r.text, /CharityHub/);
       }
       assert.match((await anon.get('/projects?q=coconut')).text, /Coconut seedlings/);
     });
@@ -114,8 +114,8 @@ async function step(name, fn) { await fn(); passed++; console.log('  ✓', name)
       await anon.get('/donate?kind=project&id=1');
       const bad = await anon.post('/donate', { kind: 'project', id: '1', amount: '0.5', donor_name: 'A', donor_email: 'a@b.co' }); assert.equal(bad.status, 400);
       const r = await anon.post('/donate', { kind: 'project', id: '1', amount: '20', donor_name: 'Test Donor', donor_email: 'donor@example.com', tip: '1', gift_aid: '1', monthly: '0' });
-      assert.equal(r.status, 303); assert.match(r.location, /^\/pay\/KV-/);
-      const pay = await anon.post(r.location, {}); assert.match(pay.location, /^\/thanks\/KV-/);
+      assert.equal(r.status, 303); assert.match(r.location, /^\/pay\/CH-/);
+      const pay = await anon.post(r.location, {}); assert.match(pay.location, /^\/thanks\/CH-/);
       const thanks = await anon.get(pay.location); assert.match(thanks.text, /Thank you/); assert.doesNotMatch(thanks.text, /donor@example\.com/);
       const after = Number(/(£[\d,]+)\s*<\/b> <span class="muted">raised/.exec((await anon.get('/projects/1')).text)[1].replace(/[£,]/g, ''));
       assert.equal(after - before, 20);
@@ -308,9 +308,9 @@ async function step(name, fn) { await fn(); passed++; console.log('  ✓', name)
       await member.get(`/events/${eid}/tickets`);
       assert.equal((await member.post(`/events/${eid}/tickets`, { qty: '4' })).status, 400); // only 3 left
       const r = await member.post(`/events/${eid}/tickets`, { qty: '2', name: 'Member One', email: 'member@example.com' });
-      assert.match(r.location, /^\/tickets\/pay\/KT-/);
+      assert.match(r.location, /^\/tickets\/pay\/CT-/);
       const paid = await member.post(r.location, {});
-      assert.match(paid.location, /^\/tickets\/KT-/);
+      assert.match(paid.location, /^\/tickets\/CT-/);
       assert.match((await member.get(paid.location)).text, /£40/);
       assert.match((await member.get(`/events/${eid}`)).text, /You have 2 ticket/);
       const dash = (await partner.get(`/dashboard/events/${eid}`)).text;
@@ -387,7 +387,7 @@ async function step(name, fn) { await fn(); passed++; console.log('  ✓', name)
     await step('Silver membership through checkout unlocks posting, not video', async () => {
       assert.match((await asha.get('/membership')).text, /£5/);
       const c = await asha.post('/membership/checkout', { tier: 'silver', period: 'month' });
-      assert.match(c.location, /^\/membership\/pay\/KM-/);
+      assert.match(c.location, /^\/membership\/pay\/CM-/);
       assert.equal((await ravi.get(c.location)).status, 404); // someone else's checkout
       await asha.get(c.location); const paid = await asha.post(c.location, {});
       assert.equal(paid.location, `/members/${ashaId}`);
@@ -481,7 +481,7 @@ async function step(name, fn) { await fn(); passed++; console.log('  ✓', name)
       const adm = (await admin.get('/admin/directory')).text;
       assert.match(adm, /Leeds Tamil School/); assert.match(adm, /0113 000 0000/); assert.match(adm, /Tamil arts networks/);
       const pub = (await anon.get('/directory')).text;
-      assert.match(pub, /Leeds Tamil School/); assert.match(pub, /not Kuviyam partners/); assert.match(pub, /0113 000 0000/); assert.match(pub, /Tamil arts networks/); assert.match(pub, /1 High St, Leeds/); assert.match(pub, /Saturday classes/); assert.match(pub, /Where this came from/);
+      assert.match(pub, /Leeds Tamil School/); assert.match(pub, /not CharityHub partners/); assert.match(pub, /0113 000 0000/); assert.match(pub, /Tamil arts networks/); assert.match(pub, /1 High St, Leeds/); assert.match(pub, /Saturday classes/); assert.match(pub, /Where this came from/);
       const ev = (await anon.get('/events')).text; assert.match(ev, /Happening in the community/); assert.match(ev, /Pongal Fair/); assert.match(ev, /Temple Festival/);
       const id = /\/admin\/directory\/(\d+)\/invite/.exec(adm)[1];
       await admin.post(`/admin/directory/${id}/invite`, {});

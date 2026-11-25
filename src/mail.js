@@ -3,8 +3,8 @@
  * Sending email. Pick one with environment variables (Hostinger hPanel > Node.js > Environment variables):
  *
  *   Hostinger mailbox (or any SMTP):  SMTP_HOST=smtp.hostinger.com  SMTP_PORT=465
- *                                     SMTP_USER=noreply@kuviyam.net  SMTP_PASS=...  MAIL_FROM=noreply@kuviyam.net
- *   Resend:                           RESEND_API_KEY=re_...  MAIL_FROM=noreply@kuviyam.net
+ *                                     SMTP_USER=noreply@dbsgroup.io  SMTP_PASS=...  MAIL_FROM=noreply@dbsgroup.io
+ *   Resend:                           RESEND_API_KEY=re_...  MAIL_FROM=noreply@dbsgroup.io
  *
  * With neither set, emails are written to the app log instead of being sent ("log" mode), so the site
  * works the same while email is being set up. No packages needed: SMTP is spoken directly over TLS.
@@ -19,15 +19,15 @@ function provider() {
   if (process.env.RESEND_API_KEY) return 'resend';
   return 'log';
 }
-const fromAddress = () => process.env.MAIL_FROM || process.env.SMTP_USER || 'noreply@kuviyam.net';
-const fromName = () => process.env.MAIL_FROM_NAME || 'Kuviyam';
+const fromAddress = () => process.env.MAIL_FROM || process.env.SMTP_USER || 'noreply@dbsgroup.io';
+const fromName = () => process.env.MAIL_FROM_NAME || 'CharityHub';
 
 const b64 = (s) => Buffer.from(s, 'utf8').toString('base64').replace(/.{76}/g, '$&\r\n');
 const encWord = (s) => (/^[\x20-\x7e]*$/.test(s) ? s : `=?UTF-8?B?${Buffer.from(s, 'utf8').toString('base64')}?=`);
 
 function buildMime({ to, subject, text, html }) {
   const boundary = 'kv' + crypto.randomBytes(12).toString('hex');
-  const domain = fromAddress().split('@')[1] || 'kuviyam.org';
+  const domain = fromAddress().split('@')[1] || 'dbsgroup.io';
   return [
     `From: ${encWord(fromName())} <${fromAddress()}>`, `To: <${to}>`, `Subject: ${encWord(subject)}`,
     `Date: ${new Date().toUTCString()}`, `Message-ID: <${crypto.randomBytes(16).toString('hex')}@${domain}>`,
@@ -58,12 +58,12 @@ function smtpSend(msg) {
     const attach = (s) => { sock = s; s.on('data', onData); s.on('error', fail); };
     const run = async () => {
       await expect([220]);
-      await cmd(`EHLO ${fromAddress().split('@')[1] || 'kuviyam'}`, [250]);
+      await cmd(`EHLO ${fromAddress().split('@')[1] || 'dbsgroup.io'}`, [250]);
       if (!secure) {
         await cmd('STARTTLS', [220]);
         sock.removeListener('data', onData);
         await new Promise((res, rej) => { const t = tls.connect({ socket: sock, servername: host }, res); t.on('error', rej); attach(t); });
-        await cmd(`EHLO ${fromAddress().split('@')[1] || 'kuviyam'}`, [250]);
+        await cmd(`EHLO ${fromAddress().split('@')[1] || 'dbsgroup.io'}`, [250]);
       }
       await cmd('AUTH LOGIN', [334]);
       await cmd(Buffer.from(user).toString('base64'), [334]);

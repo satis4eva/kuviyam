@@ -1,8 +1,8 @@
 {
-  "name": "kuviyam-platform",
+  "name": "charityhub-platform",
   "version": "0.1.0",
   "private": true,
-  "description": "Kuviyam giving platform: partners, projects, donations, sponsorship and monthly transparency reports, in Tamil and English.",
+  "description": "CharityHub giving platform: partners, projects, donations, sponsorship and monthly transparency reports, in Tamil and English.",
   "main": "server.js",
   "scripts": {
     "start": "node --disable-warning=ExperimentalWarning server.js",

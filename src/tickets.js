@@ -1,7 +1,7 @@
 'use strict';
 /*
  * Paid event tickets. Money for tickets goes through the platform's own gateway (TICKET_PAYMENT_PROVIDER),
- * kept apart from donations (which go to Kuviyam's gateway). Each order records, at the moment of sale:
+ * kept apart from donations (which go to CharityHub's gateway). Each order records, at the moment of sale:
  *   gross      what the buyer paid
  *   commission the platform's share, at the rate set in Admin > Tickets
  *   net        what the organiser is owed
@@ -50,7 +50,7 @@ function registerTickets(route, H) {
     if (errs.length) return page(ctx, { active: 'community', body: T().buy(ctx, { event: e, left: l, max: MAX_QTY, errors: errs, values: { qty, name, email } }) }, 400);
     const bps = commissionBps(); const gross = e.price_pence * qty;
     const commission = Math.round(gross * bps / 10000);
-    const pv = provider('tickets'); const r = ref('KT');
+    const pv = provider('tickets'); const r = ref('CT');
     db.prepare(`INSERT INTO ticket_orders (ref, event_id, org_id, user_id, qty, unit_pence, gross_pence, commission_bps, commission_pence, net_pence, status, provider, buyer_name, buyer_email, created_at)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', ?, ?, ?, ?)`).run(r, e.id, e.org_id, ctx.user.id, qty, e.price_pence, gross, bps, commission, gross - commission, pv.name, name, email, nowIso());
     redirect(ctx, pv.start({ ref: r, amount_pence: gross, purpose: 'tickets' }).redirect.replace(/^\/pay\//, '/tickets/pay/'));

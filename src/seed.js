@@ -186,7 +186,7 @@ function seedMembers(db) {
     const ids = people.map(([name, town, bio, tier, until], i) => Number(db.prepare(`INSERT INTO users (email, name, password_hash, role, created_at, home_town, bio, tier, member_until) VALUES (?, ?, ?, 'donor', ?, ?, ?, ?, ?)`)
       .run(`member${i + 1}@members.demo.kuviyam.org`, name, 'scrypt$' + crypto.randomBytes(8).toString('hex') + '$x', ago(900 - i * 100), town, bio, tier, until).lastInsertRowid));
     const post = (who, text, h) => Number(db.prepare(`INSERT INTO posts (org_id, user_id, text, kind, status, created_at) VALUES (NULL, ?, ?, 'text', 'live', ?)`).run(ids[who], text, ago(h)).lastInsertRowid);
-    const p1 = post(0, 'Just got the first letter from Kavitha, the student I sponsor in Pallai. She came first in maths this term! Thank you Kuviyam for making this so easy.', 5);
+    const p1 = post(0, 'Just got the first letter from Kavitha, the student I sponsor in Pallai. She came first in maths this term! Thank you CharityHub for making this so easy.', 5);
     const p2 = post(2, 'Our Grade 4 class finished reading the new Tamil storybooks this week. The children asked when the next box is coming 😊', 20);
     const p3 = post(1, 'Book drive this Saturday: we are collecting O/L revision books in East Ham. Message me if you can help sort or drive.', 30);
     const like = (pid, who) => { db.prepare('INSERT OR IGNORE INTO post_likes (post_id, user_id) VALUES (?, ?)').run(pid, ids[who]); db.prepare('UPDATE posts SET likes = likes + 1 WHERE id = ?').run(pid); };
